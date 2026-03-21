@@ -1,0 +1,37 @@
+[INFO] 加载品牌数据：170个
+[INFO] 历史数据加载成功
+[INFO] 搜索：今日最新热点新闻 2026 年 3 月
+
+🚀 AI 热点速配 - MCP 实时搜索版
+📍 端口：3000
+🏭 品牌数量：170个
+🔍 搜索 API：阿里云百炼 web_search
+📊 数据文件：/root/.openclaw/workspace/hotspot_data.json
+🔄 自动刷新：每 5 分钟
+
+[ERROR] 解析失败: Unexpected end of JSON input
+[INFO] 热点更新完成，共10条
+[INFO] 搜索：今日最新热点新闻 2026 年 3 月
+[ERROR] 解析失败: Unexpected end of JSON input
+[INFO] 热点更新完成，共10条
+[INFO] 搜索：今日最新热点新闻 2026 年 3 月
+[ERROR] 解析失败: Unexpected end of JSON input
+[INFO] 热点更新完成，共10条
+[INFO] 搜索：今日最新热点新闻 2026 年 3 月
+[ERROR] 解析失败: Unexpected end of JSON input
+[INFO] 热点更新完成，共10条
+[INFO] 搜索：今日最新热点新闻 2026 年 3 月
+[ERROR] 解析失败: Unexpected end of JSON input
+[INFO] 热点更新完成，共10条
+[INFO] 搜索：今日最新热点新闻 2026 年 3 月
+[ERROR] 解析失败: Unexpected end of JSON input
+[INFO] 热点更新完成，共10条
+[INFO] 搜索：今日最新热点新闻 2026 年 3 月
+[ERROR] 解析失败: Unexpected end of JSON input
+[INFO] 热点更新完成，共10条
+[INFO] 搜索：今日最新热点新闻 2026 年 3 月
+[ERROR] 解析失败: Unexpected end of JSON input
+[INFO] 热点更新完成，共10条
+[INFO] 搜索：今日最新热点新闻 2026 年 3 月
+[ERROR] 解析失败: Unexpected end of JSON input
+[INFO] 热点更新完成，共10条

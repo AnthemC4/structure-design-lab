@@ -1,0 +1,83 @@
+[
+  {
+    "time": "2026-03-09T16:00:27.288Z",
+    "type": "dingtalk",
+    "content": {
+      "time": "0:00",
+      "totalHotspots": 10,
+      "matchedBrands": 3,
+      "topRecommendations": [
+        {
+          "hotspotId": 1773072027286,
+          "hotspotTitle": "蔚来李斌：超快充再快也没有换电快",
+          "hotspotDesc": "百度热搜 · 全国 · 热度9500",
+          "brand": "华为问界",
+          "industry": "新能源汽车",
+          "reason": "汽车行业直接匹配;新能源领域高度相关;标签匹配：新能源",
+          "score": 78
+        },
+        {
+          "hotspotId": 1773072027287,
+          "hotspotTitle": "小米 SU7 Ultra 交付量破 5 万辆",
+          "hotspotDesc": "百度热搜 · 全国 · 热度9300",
+          "brand": "华为问界",
+          "industry": "新能源汽车",
+          "reason": "汽车行业直接匹配;新能源领域高度相关;标签匹配：新能源、科技",
+          "score": 90
+        },
+        {
+          "hotspotId": 1773072027288,
+          "hotspotTitle": "比亚迪发布新一代固态电池技术",
+          "hotspotDesc": "百度热搜 · 全国 · 热度9100",
+          "brand": "比亚迪",
+          "industry": "新能源汽车",
+          "reason": "品牌直接关联;新能源领域高度相关;标签匹配：新能源",
+          "score": 88
+        }
+      ],
+      "adoptedCount": 0,
+      "pendingCount": 5
+    }
+  },
+  {
+    "time": "2026-03-09T16:00:27.289Z",
+    "type": "email",
+    "to": "shenyou.sy@alipay.com",
+    "content": {
+      "time": "0:00",
+      "totalHotspots": 10,
+      "matchedBrands": 3,
+      "topRecommendations": [
+        {
+          "hotspotId": 1773072027286,
+          "hotspotTitle": "蔚来李斌：超快充再快也没有换电快",
+          "hotspotDesc": "百度热搜 · 全国 · 热度9500",
+          "brand": "华为问界",
+          "industry": "新能源汽车",
+          "reason": "汽车行业直接匹配;新能源领域高度相关;标签匹配：新能源",
+          "score": 78
+        },
+        {
+          "hotspotId": 1773072027287,
+          "hotspotTitle": "小米 SU7 Ultra 交付量破 5 万辆",
+          "hotspotDesc": "百度热搜 · 全国 · 热度9300",
+          "brand": "华为问界",
+          "industry": "新能源汽车",
+          "reason": "汽车行业直接匹配;新能源领域高度相关;标签匹配：新能源、科技",
+          "score": 90
+        },
+        {
+          "hotspotId": 1773072027288,
+          "hotspotTitle": "比亚迪发布新一代固态电池技术",
+          "hotspotDesc": "百度热搜 · 全国 · 热度9100",
+          "brand": "比亚迪",
+          "industry": "新能源汽车",
+          "reason": "品牌直接关联;新能源领域高度相关;标签匹配：新能源",
+          "score": 88
+        }
+      ],
+      "adoptedCount": 0,
+      "pendingCount": 5
+    }
+  }
+]

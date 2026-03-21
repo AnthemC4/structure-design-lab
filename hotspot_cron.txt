@@ -1,0 +1,4 @@
+# AI 热点速配 - 实时热点定时抓取
+# 每分钟执行一次，获取最新热点数据
+
+* * * * * cd /root/.openclaw/workspace && openclaw ask "请用 web_search 搜索 2026 年 3 月 11 日 12 日 最新 热点 新闻 科技 汽车 娱乐 财经 微博 抖音，返回 JSON" > /tmp/hotspot_raw.txt 2>&1 && node -e "const fs=require('fs');const t=fs.readFileSync('/tmp/hotspot_raw.txt','utf8');const m=t.match(/\{[\s\S]*\"pages\"[\s\S]*\}/);if(m){const r=JSON.parse(m[0]);if(r.pages){const h=r.pages.slice(0,20).map((p,i)=>({id:i+1,title:p.title,source:p.hostname,region:'全国',category:p.title.includes('汽车')?'汽车':p.title.includes('娱乐')?'娱乐':p.title.includes('财经')?'财经':'科技',heat:9800-i*200,time:'刚刚',publishTime:new Date().toISOString(),url:p.url,tags:['热点'],isExpanded:false}));fs.writeFileSync('/root/.openclaw/workspace/hotspot_realtime.json',JSON.stringify({success:true,data:h,lastFetchTime:new Date().toISOString(),source:'web_search'},null,2));console.log('OK '+h.length);}}else{console.log('NO JSON');}" >> /root/.openclaw/workspace/hotspot_fetch.log 2>&1

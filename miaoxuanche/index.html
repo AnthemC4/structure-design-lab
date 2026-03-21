@@ -1,0 +1,1287 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>秒选车 - 选车不纠结，3 分钟找到最适合你的车</title>
+    <meta name="format-detection" content="telephone=no">
+    <meta name="x5-fullscreen" content="true">
+    <meta name="full-screen" content="yes">
+    <meta name="x5-page-mode" content="app">
+    <meta name="browsermode" content="application">
+    <meta name="screen-orientation" content="portrait">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+            -webkit-touch-callout: none;
+            -webkit-user-select: none;
+            user-select: none;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif, 'Microsoft YaHei';
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            overflow-x: hidden;
+            -webkit-overflow-scrolling: touch;
+        }
+        
+        /* 移动端优化 */
+        @media (max-width: 768px) {
+            .logo { font-size: 2.5rem !important; }
+            .slogan { font-size: 1rem !important; }
+            .start-btn { padding: 14px 40px !important; font-size: 1.1rem !important; }
+            .options-grid { grid-template-columns: 1fr !important; gap: 10px !important; }
+            .option-card { padding: 15px 12px !important; }
+            .question-title { font-size: 1.2rem !important; }
+            .car-params { grid-template-columns: 1fr !important; }
+            .question-footer { flex-direction: column !important; }
+            .nav-btn { width: 100% !important; }
+            .btn-back { margin-bottom: 10px !important; }
+        }
+        
+        .page {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            transition: transform 0.3s ease;
+        }
+        
+        /* 欢迎页 */
+        #welcome-page {
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+        }
+        
+        #welcome-page::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="50" cy="50" r="2" fill="rgba(255,255,255,0.1)"/></svg>');
+            background-size: 50px 50px;
+            opacity: 0.3;
+        }
+        
+        .welcome-content {
+            text-align: center;
+            z-index: 1;
+            padding: 20px;
+        }
+        
+        .logo {
+            font-size: 3.5rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, #00d2ff 0%, #3a7bd5 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 10px;
+            text-shadow: 0 0 30px rgba(0, 210, 255, 0.3);
+        }
+        
+        .slogan {
+            font-size: 1.1rem;
+            color: rgba(255, 255, 255, 0.9);
+            margin-bottom: 40px;
+            line-height: 1.6;
+        }
+        
+        .start-btn {
+            background: linear-gradient(135deg, #00d2ff 0%, #3a7bd5 100%);
+            color: white;
+            border: none;
+            padding: 16px 50px;
+            font-size: 1.2rem;
+            font-weight: 600;
+            border-radius: 50px;
+            cursor: pointer;
+            box-shadow: 0 10px 30px rgba(0, 210, 255, 0.4);
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .start-btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+            transition: left 0.5s ease;
+        }
+        
+        .start-btn:hover::before {
+            left: 100%;
+        }
+        
+        .start-btn:active {
+            transform: scale(0.95);
+        }
+        
+        .welcome-footer {
+            margin-top: 30px;
+            font-size: 0.85rem;
+            color: rgba(255, 255, 255, 0.6);
+        }
+        
+        /* 问卷页 */
+        #question-page {
+            background: #f5f7fa;
+            transform: translateX(100%);
+            z-index: 90;
+        }
+        
+        #question-page.active {
+            transform: translateX(0);
+        }
+        
+        .question-header {
+            background: white;
+            padding: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        }
+        
+        .progress-container {
+            margin-bottom: 15px;
+        }
+        
+        .progress-bar {
+            height: 6px;
+            background: #e0e0e0;
+            border-radius: 3px;
+            overflow: hidden;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #00d2ff, #3a7bd5);
+            border-radius: 3px;
+            transition: width 0.3s ease;
+            width: 20%;
+        }
+        
+        .progress-text {
+            font-size: 0.85rem;
+            color: #666;
+            text-align: center;
+            margin-top: 8px;
+        }
+        
+        .question-content {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+        }
+        
+        .question-title {
+            font-size: 1.4rem;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 25px;
+            text-align: center;
+        }
+        
+        .options-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+            margin-bottom: 30px;
+        }
+        
+        .option-card {
+            background: white;
+            border: 2px solid #e0e0e0;
+            border-radius: 12px;
+            padding: 20px 15px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            touch-action: manipulation;
+        }
+        
+        .option-card:active {
+            transform: scale(0.95);
+            background: #f5f5f5;
+        }
+        
+        .option-card.selected {
+            border-color: #3a7bd5;
+            background: linear-gradient(135deg, rgba(0, 210, 255, 0.1), rgba(58, 123, 213, 0.1));
+        }
+        
+        .option-card .emoji {
+            font-size: 2rem;
+            display: block;
+            margin-bottom: 8px;
+        }
+        
+        .option-card .label {
+            font-size: 0.95rem;
+            color: #333;
+            font-weight: 500;
+        }
+        
+        .option-card.disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
+        .question-footer {
+            padding: 20px;
+            background: white;
+            box-shadow: 0 -2px 10px rgba(0,0,0,0.05);
+            display: flex;
+            gap: 15px;
+        }
+        
+        .nav-btn {
+            flex: 1;
+            padding: 14px 20px;
+            border: none;
+            border-radius: 12px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        
+        .btn-back {
+            background: #f0f0f0;
+            color: #666;
+        }
+        
+        .btn-next {
+            background: linear-gradient(135deg, #00d2ff 0%, #3a7bd5 100%);
+            color: white;
+            box-shadow: 0 4px 15px rgba(58, 123, 213, 0.3);
+        }
+        
+        .btn-next:disabled {
+            background: #ccc;
+            box-shadow: none;
+            cursor: not-allowed;
+        }
+        
+        .toast {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) scale(0.9);
+            background: rgba(0,0,0,0.8);
+            color: white;
+            padding: 15px 25px;
+            border-radius: 10px;
+            font-size: 0.95rem;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+            z-index: 1000;
+        }
+        
+        .toast.show {
+            opacity: 1;
+            visibility: visible;
+            transform: translate(-50%, -50%) scale(1);
+        }
+        
+        /* 结果页 */
+        #result-page {
+            background: #f5f7fa;
+            transform: translateX(100%);
+            z-index: 80;
+            overflow-y: auto;
+        }
+        
+        #result-page.active {
+            transform: translateX(0);
+        }
+        
+        .result-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px 20px 20px;
+            text-align: center;
+        }
+        
+        .result-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+        
+        .result-subtitle {
+            font-size: 0.9rem;
+            opacity: 0.9;
+        }
+        
+        .result-content {
+            padding: 20px;
+        }
+        
+        .car-card {
+            background: white;
+            border-radius: 16px;
+            overflow: hidden;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+            transition: transform 0.2s ease;
+        }
+        
+        .car-card:active {
+            transform: scale(0.98);
+        }
+        
+        .car-image {
+            width: 100%;
+            height: 180px;
+            background: linear-gradient(135deg, #f5f7fa 0%, #e0e0e0 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 3rem;
+            position: relative;
+        }
+        
+        .car-image img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        
+        .match-badge {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: linear-gradient(135deg, #00d2ff 0%, #3a7bd5 100%);
+            color: white;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 600;
+        }
+        
+        .car-info {
+            padding: 20px;
+        }
+        
+        .car-brand {
+            font-size: 0.85rem;
+            color: #666;
+            margin-bottom: 4px;
+        }
+        
+        .car-name {
+            font-size: 1.3rem;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 8px;
+        }
+        
+        .car-price {
+            font-size: 1.1rem;
+            color: #e74c3c;
+            font-weight: 600;
+            margin-bottom: 15px;
+        }
+        
+        .match-reason {
+            background: linear-gradient(135deg, rgba(0, 210, 255, 0.05), rgba(58, 123, 213, 0.05));
+            border-left: 3px solid #3a7bd5;
+            padding: 12px;
+            border-radius: 0 8px 8px 0;
+            margin-bottom: 15px;
+        }
+        
+        .match-reason-text {
+            font-size: 0.9rem;
+            color: #555;
+            line-height: 1.5;
+        }
+        
+        .car-params {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+        
+        .param-item {
+            text-align: center;
+            padding: 10px;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+        
+        .param-label {
+            font-size: 0.75rem;
+            color: #999;
+            margin-bottom: 4px;
+        }
+        
+        .param-value {
+            font-size: 0.9rem;
+            color: #333;
+            font-weight: 500;
+        }
+        
+        .car-actions {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .action-btn {
+            flex: 1;
+            padding: 12px;
+            border: none;
+            border-radius: 10px;
+            font-size: 0.95rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        
+        .btn-compare {
+            background: #f0f0f0;
+            color: #333;
+        }
+        
+        .btn-buy {
+            background: linear-gradient(135deg, #00d2ff 0%, #3a7bd5 100%);
+            color: white;
+        }
+        
+        .compare-bar {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: white;
+            padding: 15px 20px;
+            box-shadow: 0 -4px 20px rgba(0,0,0,0.1);
+            transform: translateY(100%);
+            transition: transform 0.3s ease;
+            z-index: 200;
+        }
+        
+        .compare-bar.show {
+            transform: translateY(0);
+        }
+        
+        .compare-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        
+        .compare-count {
+            font-size: 0.95rem;
+            color: #333;
+        }
+        
+        .compare-actions {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .btn-cancel {
+            background: #f0f0f0;
+            color: #666;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            cursor: pointer;
+        }
+        
+        .btn-confirm {
+            background: linear-gradient(135deg, #00d2ff 0%, #3a7bd5 100%);
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            cursor: pointer;
+        }
+        
+        .restart-btn {
+            background: transparent;
+            border: 2px solid rgba(255,255,255,0.5);
+            color: white;
+            padding: 10px 25px;
+            border-radius: 25px;
+            font-size: 0.9rem;
+            cursor: pointer;
+            margin-top: 15px;
+            transition: all 0.2s ease;
+        }
+        
+        .restart-btn:hover {
+            background: rgba(255,255,255,0.1);
+        }
+        
+        .share-btn {
+            background: rgba(255,255,255,0.2);
+            border: none;
+            color: white;
+            padding: 8px 15px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+        
+        /* 对比页 */
+        #compare-page {
+            background: #f5f7fa;
+            transform: translateX(100%);
+            z-index: 150;
+            overflow-y: auto;
+        }
+        
+        #compare-page.active {
+            transform: translateX(0);
+        }
+        
+        .compare-header {
+            background: white;
+            padding: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        
+        .compare-title {
+            flex: 1;
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: #333;
+        }
+        
+        .compare-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+            padding: 20px;
+        }
+        
+        .compare-car {
+            background: white;
+            border-radius: 12px;
+            padding: 15px;
+            text-align: center;
+        }
+        
+        .compare-car-name {
+            font-size: 1rem;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 10px;
+        }
+        
+        .compare-params {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        
+        .compare-param-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid #f0f0f0;
+        }
+        
+        .compare-param-label {
+            font-size: 0.8rem;
+            color: #999;
+        }
+        
+        .compare-param-value {
+            font-size: 0.85rem;
+            color: #333;
+            font-weight: 500;
+        }
+        
+        /* 加载动画 */
+        .loading {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            color: white;
+        }
+        
+        .loading-spinner {
+            width: 50px;
+            height: 50px;
+            border: 4px solid rgba(255,255,255,0.3);
+            border-top-color: white;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 20px;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        /* 隐藏元素 */
+        .hidden {
+            display: none !important;
+        }
+    </style>
+</head>
+<body>
+    <!-- 欢迎页 -->
+    <div id="welcome-page" class="page">
+        <div class="welcome-content">
+            <div class="logo">🚗 秒选车</div>
+            <div class="slogan">选车不纠结，3 分钟<br>找到最适合你的车</div>
+            <button class="start-btn" onclick="startQuiz()">开始选车</button>
+            <div class="welcome-footer">已帮助 10,000+ 用户找到爱车</div>
+        </div>
+    </div>
+    
+    <!-- 问卷页 -->
+    <div id="question-page" class="page">
+        <div class="question-header">
+            <div class="progress-container">
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progress-fill"></div>
+                </div>
+                <div class="progress-text" id="progress-text">第 1 步 / 共 5 步</div>
+            </div>
+        </div>
+        
+        <div class="question-content" id="question-content">
+            <!-- 动态加载问题 -->
+        </div>
+        
+        <div class="question-footer">
+            <button class="nav-btn btn-back" id="btn-back" onclick="prevStep()" style="visibility: hidden;">返回</button>
+            <button class="nav-btn btn-next" id="btn-next" onclick="nextStep()" disabled>下一步</button>
+        </div>
+    </div>
+    
+    <!-- 结果页 -->
+    <div id="result-page" class="page">
+        <div class="result-header">
+            <div class="result-title">为您推荐</div>
+            <div class="result-subtitle">基于您的选择，AI 智能匹配以下车型</div>
+            <button class="restart-btn" onclick="restart()">🔄 重新选车</button>
+            <button class="share-btn" onclick="shareResult()">📤 分享结果</button>
+        </div>
+        
+        <div class="result-content" id="result-content">
+            <!-- 动态加载推荐结果 -->
+        </div>
+    </div>
+    
+    <!-- 对比页 -->
+    <div id="compare-page" class="page">
+        <div class="compare-header">
+            <button class="nav-btn btn-back" onclick="closeCompare()" style="flex: 0 0 auto; padding: 10px 15px;">← 返回</button>
+            <div class="compare-title">车型对比</div>
+        </div>
+        
+        <div class="compare-grid" id="compare-grid">
+            <!-- 动态加载对比内容 -->
+        </div>
+    </div>
+    
+    <!-- 对比栏 -->
+    <div class="compare-bar" id="compare-bar">
+        <div class="compare-info">
+            <span class="compare-count" id="compare-count">已选 0/2 款车对比</span>
+            <div class="compare-actions">
+                <button class="btn-cancel" onclick="clearCompare()">清空</button>
+                <button class="btn-confirm" id="btn-confirm-compare" onclick="showCompare()" disabled>开始对比</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Toast 提示 -->
+    <div class="toast" id="toast"></div>
+    
+    <script>
+        // 车型数据（从 CSV 转换）
+        const carData = [
+            {id:"C001",brand:"吉利",name:"星愿",price:"6.88-9.88",type:"轿车",energy:"纯电车",range:"310-410km",seats:5,wheelbase:2650,drive:"L2",safety:"C-NCAP 五星",tags:["低用车成本","外观颜值","科技感"],desc:"适合追求性价比与智能体验的城市年轻用户",image:"https://www.autohome.com.cn/13109/"},
+            {id:"C002",brand:"五菱",name:"宏光 MINIEV",price:"3.58-5.58",type:"轿车",energy:"纯电车",range:"205-301km",seats:4,wheelbase:1965,drive:"基础辅助",safety:"C-NCAP 四星",tags:["低用车成本","可靠耐用"],desc:"适合城市短途代步和新手用户的经济实用选择",image:"https://www.autohome.com.cn/7877/"},
+            {id:"C003",brand:"比亚迪",name:"海鸥",price:"6.98-8.58",type:"轿车",energy:"纯电车",range:"305-405km",seats:5,wheelbase:2500,drive:"L2",safety:"C-NCAP 五星",tags:["低用车成本","安全性","科技感"],desc:"适合城市通勤和家庭代步的精品纯电小车",image:"https://www.autohome.com.cn/12621/"},
+            {id:"C004",brand:"比亚迪",name:"秦 PLUS DM",price:"7.98-10.38",type:"轿车",energy:"混动/增程",range:"120-210km",seats:5,wheelbase:2718,drive:"L2",safety:"C-NCAP 五星",tags:["低用车成本","可靠耐用","动力性能"],desc:"适合追求低油耗和长续航的家庭用户",image:"https://www.autohome.com.cn/8883/"},
+            {id:"C005",brand:"日产",name:"轩逸",price:"7.99-17.49",type:"轿车",energy:"燃油车",range:"N/A",seats:5,wheelbase:2712,drive:"L1",safety:"C-NCAP 五星",tags:["空间舒适","可靠耐用","低用车成本"],desc:"适合追求舒适性和可靠性的家庭用户",image:"https://www.autohome.com.cn/634/"},
+            {id:"C006",brand:"比亚迪",name:"秦 L DM",price:"9.98-13.98",type:"轿车",energy:"混动/增程",range:"120-200km",seats:5,wheelbase:2790,drive:"L2",safety:"C-NCAP 五星",tags:["低用车成本","科技感","空间舒适"],desc:"适合追求新技术和长续航的家庭用户",image:"https://www.autohome.com.cn/13067/"},
+            {id:"C007",brand:"大众",name:"朗逸",price:"8.00-15.19",type:"轿车",energy:"燃油车",range:"N/A",seats:5,wheelbase:2688,drive:"L1",safety:"C-NCAP 五星",tags:["可靠耐用","空间舒适"],desc:"适合追求德系品质和稳定性的家庭用户",image:"https://www.autohome.com.cn/6770/"},
+            {id:"C008",brand:"小米",name:"SU7",price:"21.59-29.99",type:"轿车",energy:"纯电车",range:"700-830km",seats:5,wheelbase:3000,drive:"L2+",safety:"C-NCAP 五星",tags:["科技感","操控好","外观颜值","动力性能"],desc:"适合追求极致驾驶感与科技体验的年轻人",image:"https://www.autohome.com.cn/13034/"},
+            {id:"C009",brand:"大众",name:"速腾",price:"13.99-17.29",type:"轿车",energy:"燃油车",range:"N/A",seats:5,wheelbase:2731,drive:"L1",safety:"C-NCAP 五星",tags:["空间舒适","可靠耐用"],desc:"适合追求德系品质和 A+ 级空间的务实用户",image:"https://www.autohome.com.cn/6624/"},
+            {id:"C010",brand:"比亚迪",name:"海豹 06 DM",price:"9.98-13.98",type:"轿车",energy:"混动/增程",range:"120-200km",seats:5,wheelbase:2790,drive:"L2",safety:"C-NCAP 五星",tags:["低用车成本","科技感","外观颜值"],desc:"适合追求海洋美学和 DM-i 技术的年轻用户",image:"https://www.autohome.com.cn/13137/"},
+            {id:"C011",brand:"特斯拉",name:"Model 3",price:"23.19-27.59",type:"轿车",energy:"纯电车",range:"554-675km",seats:5,wheelbase:2875,drive:"L2+",safety:"C-NCAP 五星",tags:["科技感","操控好","动力性能","高保值"],desc:"适合追求品牌与驾驶乐趣的科技爱好者",image:"https://www.autohome.com.cn/3453/"},
+            {id:"C012",brand:"比亚迪",name:"海豚",price:"9.98-12.58",type:"轿车",energy:"纯电车",range:"420-520km",seats:5,wheelbase:2700,drive:"L2",safety:"C-NCAP 五星",tags:["低用车成本","外观颜值","空间舒适"],desc:"适合城市通勤和年轻家庭的精品纯电小车",image:"https://www.autohome.com.cn/8959/"},
+            {id:"C013",brand:"丰田",name:"凯美瑞",price:"17.18-25.98",type:"轿车",energy:"混动/增程",range:"N/A",seats:5,wheelbase:2825,drive:"L2",safety:"C-NCAP 五星",tags:["可靠耐用","低用车成本","空间舒适","高保值"],desc:"适合追求省心耐用和舒适性的家庭用户",image:"https://www.autohome.com.cn/110/"},
+            {id:"C014",brand:"大众",name:"帕萨特",price:"16.49-23.99",type:"轿车",energy:"燃油车",range:"N/A",seats:5,wheelbase:2871,drive:"L2",safety:"C-NCAP 五星",tags:["空间舒适","可靠耐用","安全性"],desc:"适合商务家用兼顾的成熟用户",image:"https://www.autohome.com.cn/6771/"},
+            {id:"C015",brand:"大众",name:"迈腾",price:"17.49-24.69",type:"轿车",energy:"燃油车",range:"N/A",seats:5,wheelbase:2871,drive:"L2",safety:"C-NCAP 五星",tags:["空间舒适","可靠耐用","安全性"],desc:"适合商务家用兼顾的德系品质追求者",image:"https://www.autohome.com.cn/422/"},
+            {id:"C016",brand:"宝马",name:"3 系",price:"29.99-39.99",type:"轿车",energy:"燃油车",range:"N/A",seats:5,wheelbase:2961,drive:"L2",safety:"C-NCAP 五星",tags:["操控好","动力性能","外观颜值"],desc:"适合追求驾驶乐趣和品牌价值的年轻人",image:"https://www.autohome.com.cn/66/"},
+            {id:"C017",brand:"奔驰",name:"C 级",price:"33.48-37.98",type:"轿车",energy:"燃油车",range:"N/A",seats:5,wheelbase:2954,drive:"L2",safety:"C-NCAP 五星",tags:["外观颜值","空间舒适","安全性"],desc:"适合追求豪华感和品牌调性的都市精英",image:"https://www.autohome.com.cn/3448/"},
+            {id:"C018",brand:"奥迪",name:"A4L",price:"32.18-40.08",type:"轿车",energy:"燃油车",range:"N/A",seats:5,wheelbase:2908,drive:"L2",safety:"C-NCAP 五星",tags:["科技感","操控好","安全性"],desc:"适合追求科技与平衡的理性用户",image:"https://www.autohome.com.cn/6926/"},
+            {id:"C019",brand:"本田",name:"雅阁",price:"17.98-22.88",type:"轿车",energy:"混动/增程",range:"N/A",seats:5,wheelbase:2830,drive:"L2",safety:"C-NCAP 五星",tags:["可靠耐用","低用车成本","空间舒适"],desc:"适合追求省心和实用性的家庭用户",image:"https://www.autohome.com.cn/640/"},
+            {id:"C020",brand:"比亚迪",name:"汉",price:"16.98-24.98",type:"轿车",energy:"混动/增程",range:"120-200km",seats:5,wheelbase:2920,drive:"L2+",safety:"C-NCAP 五星",tags:["科技感","安全性","动力性能","外观颜值"],desc:"适合追求豪华感和科技的商务人士",image:"https://www.autohome.com.cn/6964/"},
+            {id:"S001",brand:"特斯拉",name:"Model Y",price:"26.35-31.35",type:"SUV",energy:"纯电车",range:"554-688km",seats:5,wheelbase:2890,drive:"L2+",safety:"C-NCAP 五星",tags:["科技感","动力性能","高保值","操控好"],desc:"适合追求品牌和科技体验的中产家庭",image:"https://www.autohome.com.cn/13034/"},
+            {id:"S002",brand:"吉利",name:"星越 L",price:"14.77-17.97",type:"SUV",energy:"燃油车",range:"N/A",seats:5,wheelbase:2845,drive:"L2",safety:"C-NCAP 五星",tags:["空间舒适","科技感","动力性能"],desc:"适合追求越级体验的务实家庭",image:"https://www.autohome.com.cn/8671/"},
+            {id:"S003",brand:"比亚迪",name:"宋 PLUS 新能源",price:"12.98-16.98",type:"SUV",energy:"混动/增程",range:"100-150km",seats:5,wheelbase:2765,drive:"L2",safety:"C-NCAP 五星",tags:["低用车成本","空间舒适","可靠耐用"],desc:"适合家庭用户的均衡之选",image:"https://www.autohome.com.cn/2033/"},
+            {id:"S004",brand:"丰田",name:"RAV4 荣放",price:"16.98-26.38",type:"SUV",energy:"燃油车",range:"N/A",seats:5,wheelbase:2690,drive:"L2",safety:"C-NCAP 五星",tags:["可靠耐用","低用车成本","高保值"],desc:"适合追求省心耐用的家庭用户",image:"https://www.autohome.com.cn/110/"},
+            {id:"M001",brand:"腾势",name:"D9",price:"33.98-60.06",type:"MPV",energy:"混动/增程",range:"190-200km",seats:7,wheelbase:3110,drive:"L2",safety:"C-NCAP 五星",tags:["空间舒适","科技感","低用车成本"],desc:"适合商务家用兼顾的高端 MPV 用户",image:"https://www.autohome.com.cn/12620/"},
+            {id:"M002",brand:"别克",name:"GL8",price:"23.29-47.39",type:"MPV",energy:"燃油车",range:"N/A",seats:7,wheelbase:3088,drive:"L2",safety:"C-NCAP 五星",tags:["空间舒适","可靠耐用","商务"],desc:"适合商务接待和高端家庭用户",image:"https://www.autohome.com.cn/8856/"},
+            {id:"M003",brand:"丰田",name:"赛那",price:"29.98-41.08",type:"MPV",energy:"混动/增程",range:"N/A",seats:7,wheelbase:3060,drive:"L2",safety:"C-NCAP 五星",tags:["可靠耐用","低用车成本","空间舒适"],desc:"适合追求省心耐用的多孩家庭",image:"https://www.autohome.com.cn/110/"},
+            {id:"O001",brand:"保时捷",name:"911",price:"129.80-303.80",type:"跑车",energy:"燃油车",range:"N/A",seats:4,wheelbase:2450,drive:"L2",safety:"C-NCAP 五星",tags:["动力性能","操控好","豪华","高保值"],desc:"适合追求极致驾驶乐趣的富裕车迷",image:"https://www.autohome.com.cn/3453/"},
+            {id:"O002",brand:"福特",name:"F-150",price:"72.00-85.00",type:"皮卡",energy:"燃油车",range:"N/A",seats:5,wheelbase:3685,drive:"L2",safety:"C-NCAP 五星",tags:["动力性能","越野能力","实用性"],desc:"适合追求美式皮卡文化的用户",image:"https://www.autohome.com.cn/7742/"}
+        ];
+        
+        // 问卷数据
+        const questions = [
+            {
+                step: 1,
+                title: "您的购车预算是？",
+                type: "multi",
+                max: 6,
+                options: [
+                    { id: "budget1", label: "10 万以下", emoji: "💰", value: { min: 0, max: 10 } },
+                    { id: "budget2", label: "10-15 万", emoji: "💵", value: { min: 10, max: 15 } },
+                    { id: "budget3", label: "15-20 万", emoji: "💶", value: { min: 15, max: 20 } },
+                    { id: "budget4", label: "20-30 万", emoji: "💷", value: { min: 20, max: 30 } },
+                    { id: "budget5", label: "30-50 万", emoji: "💎", value: { min: 30, max: 50 } },
+                    { id: "budget6", label: "50 万以上", emoji: "👑", value: { min: 50, max: 999 } }
+                ]
+            },
+            {
+                step: 2,
+                title: "您主要在哪些场景用车？",
+                type: "multi",
+                max: 3,
+                options: [
+                    { id: "scene1", label: "城市通勤", emoji: "🏙️", value: "city" },
+                    { id: "scene2", label: "家庭出行", emoji: "👨‍👩‍👧‍👦", value: "family" },
+                    { id: "scene3", label: "长途自驾", emoji: "🛣️", value: "longtrip" },
+                    { id: "scene4", label: "户外越野", emoji: "🏔️", value: "offroad" },
+                    { id: "scene5", label: "商务接待", emoji: "💼", value: "business" },
+                    { id: "scene6", label: "网约/营运", emoji: "🚕", value: "rideshare" }
+                ]
+            },
+            {
+                step: 3,
+                title: "您倾向哪种能源类型？",
+                type: "single",
+                options: [
+                    { id: "energy1", label: "燃油车", emoji: "⛽", value: "燃油车" },
+                    { id: "energy2", label: "纯电动", emoji: "🔋", value: "纯电车" },
+                    { id: "energy3", label: "混动/增程", emoji: "🔌", value: "混动/增程" },
+                    { id: "energy4", label: "都可以接受", emoji: "✅", value: "any" }
+                ]
+            },
+            {
+                step: 4,
+                title: "您偏好哪种车身空间？",
+                type: "single",
+                options: [
+                    { id: "space1", label: "1-4 人", emoji: "🚗", sublabel: "灵活小车", value: { maxSeats: 4 } },
+                    { id: "space2", label: "标准 5 座", emoji: "🚙", sublabel: "主流选择", value: { maxSeats: 5 } },
+                    { id: "space3", label: "大 6/7 座", emoji: "🚐", sublabel: "二胎/三代同堂", value: { minSeats: 6 } }
+                ]
+            },
+            {
+                step: 5,
+                title: "您最看重哪些方面？",
+                type: "multi",
+                max: 3,
+                min: 3,
+                options: [
+                    { id: "pref1", label: "安全性", emoji: "🛡️", value: "安全性" },
+                    { id: "pref2", label: "空间舒适", emoji: "🛋️", value: "空间舒适" },
+                    { id: "pref3", label: "动力性能", emoji: "⚡", value: "动力性能" },
+                    { id: "pref4", label: "智能科技", emoji: "🤖", value: "科技感" },
+                    { id: "pref5", label: "外观颜值", emoji: "✨", value: "外观颜值" },
+                    { id: "pref6", label: "品牌面子", emoji: "🏆", value: "高保值" },
+                    { id: "pref7", label: "可靠耐用", emoji: "💪", value: "可靠耐用" },
+                    { id: "pref8", label: "低成本用车", emoji: "💸", value: "低用车成本" }
+                ]
+            }
+        ];
+        
+        // 状态
+        let currentStep = 0;
+        let answers = {};
+        let compareList = [];
+        let matchedCars = [];
+        
+        // 初始化
+        function init() {
+            renderQuestion(0);
+        }
+        
+        // 开始问卷
+        function startQuiz() {
+            document.getElementById('question-page').classList.add('active');
+            renderQuestion(0);
+        }
+        
+        // 渲染问题
+        function renderQuestion(stepIndex) {
+            const question = questions[stepIndex];
+            const content = document.getElementById('question-content');
+            
+            // 更新进度
+            document.getElementById('progress-fill').style.width = ((stepIndex + 1) * 20) + '%';
+            document.getElementById('progress-text').textContent = `第${stepIndex + 1}步 / 共 5 步`;
+            
+            // 更新按钮
+            document.getElementById('btn-back').style.visibility = stepIndex === 0 ? 'hidden' : 'visible';
+            
+            // 渲染问题内容
+            let html = `<div class="question-title">${question.title}</div>`;
+            html += `<div class="options-grid">`;
+            
+            question.options.forEach(opt => {
+                const selected = answers[question.step] && 
+                    (Array.isArray(answers[question.step]) 
+                        ? answers[question.step].includes(opt.id)
+                        : answers[question.step] === opt.id);
+                
+                html += `
+                    <div class="option-card ${selected ? 'selected' : ''}" 
+                         data-id="${opt.id}" 
+                         data-step="${question.step}"
+                         data-type="${question.type}"
+                         data-max="${question.max || 0}"
+                         data-min="${question.min || 0}"
+                         onclick="handleCardClick(this)">
+                        <span class="emoji">${opt.emoji}</span>
+                        <span class="label">${opt.label}${opt.sublabel ? '<br><small style="color:#999">'+opt.sublabel+'</small>' : ''}</span>
+                    </div>
+                `;
+            });
+            
+            html += `</div>`;
+            content.innerHTML = html;
+            
+            updateNextButton();
+        }
+        
+        // 处理卡片点击（兼容移动端）
+        function handleCardClick(card) {
+            const step = parseInt(card.dataset.step);
+            const optionId = card.dataset.id;
+            const type = card.dataset.type;
+            const max = parseInt(card.dataset.max);
+            const min = parseInt(card.dataset.min);
+            
+            // 添加震动反馈（如果设备支持）
+            if (navigator.vibrate) {
+                navigator.vibrate(10);
+            }
+            
+            selectOption(step, optionId, type, max, min);
+        }
+        
+        // 选择选项
+        function selectOption(step, optionId, type, max, min) {
+            const question = questions.find(q => q.step === step);
+            const card = document.querySelector(`[data-id="${optionId}"]`);
+            
+            if (type === 'single') {
+                answers[step] = optionId;
+                document.querySelectorAll('.option-card').forEach(c => c.classList.remove('selected'));
+                card.classList.add('selected');
+            } else {
+                if (!answers[step]) answers[step] = [];
+                const index = answers[step].indexOf(optionId);
+                
+                if (index > -1) {
+                    answers[step].splice(index, 1);
+                    card.classList.remove('selected');
+                } else {
+                    if (answers[step].length >= max) {
+                        showToast(`最多选${max}项`);
+                        return;
+                    }
+                    answers[step].push(optionId);
+                    card.classList.add('selected');
+                }
+            }
+            
+            updateNextButton();
+        }
+        
+        // 更新下一步按钮
+        function updateNextButton() {
+            const question = questions[currentStep];
+            const answer = answers[question.step];
+            let valid = false;
+            
+            if (question.type === 'single') {
+                valid = !!answer;
+            } else if (question.min) {
+                valid = answer && answer.length >= question.min;
+            } else {
+                valid = answer && answer.length > 0;
+            }
+            
+            document.getElementById('btn-next').disabled = !valid;
+        }
+        
+        // 下一步
+        function nextStep() {
+            if (currentStep < questions.length - 1) {
+                currentStep++;
+                renderQuestion(currentStep);
+            } else {
+                calculateResults();
+            }
+        }
+        
+        // 上一步
+        function prevStep() {
+            if (currentStep > 0) {
+                currentStep--;
+                renderQuestion(currentStep);
+            }
+        }
+        
+        // 计算匹配结果
+        function calculateResults() {
+            // 显示加载
+            document.getElementById('question-content').innerHTML = `
+                <div class="loading">
+                    <div class="loading-spinner"></div>
+                    <div>AI 智能匹配中...</div>
+                </div>
+            `;
+            
+            setTimeout(() => {
+                // 硬过滤
+                let filtered = carData.filter(car => {
+                    // 预算过滤
+                    const budget = answers[1];
+                    if (budget) {
+                        const budgetOpts = questions[0].options;
+                        const selectedBudgets = budget.map(id => budgetOpts.find(o => o.id === id).value);
+                        let inBudget = false;
+                        const priceParts = car.price.split('-').map(p => parseFloat(p));
+                        const minPrice = priceParts[0];
+                        const maxPrice = priceParts[1] || priceParts[0];
+                        
+                        for (const b of selectedBudgets) {
+                            if (minPrice <= b.max && maxPrice >= b.min) {
+                                inBudget = true;
+                                break;
+                            }
+                        }
+                        if (!inBudget) return false;
+                    }
+                    
+                    // 能源过滤
+                    const energy = answers[3];
+                    if (energy && energy !== 'energy4') {
+                        const energyOpt = questions[2].options.find(o => o.id === energy);
+                        if (energyOpt && energyOpt.value !== 'any' && car.energy !== energyOpt.value) {
+                            return false;
+                        }
+                    }
+                    
+                    // 空间过滤
+                    const space = answers[4];
+                    if (space) {
+                        const spaceOpt = questions[3].options.find(o => o.id === space);
+                        if (spaceOpt && spaceOpt.value) {
+                            if (spaceOpt.value.maxSeats && car.seats > spaceOpt.value.maxSeats) return false;
+                            if (spaceOpt.value.minSeats && car.seats < spaceOpt.value.minSeats) return false;
+                        }
+                    }
+                    
+                    return true;
+                });
+                
+                // 软匹配评分
+                matchedCars = filtered.map(car => {
+                    let score = 50;
+                    const reasons = [];
+                    
+                    // 场景匹配
+                    const scenes = answers[2] || [];
+                    if (scenes.includes('scene1')) { // 城市通勤
+                        if (car.energy === '纯电车' || car.energy === '混动/增程') {
+                            score += 10;
+                            reasons.push('低用车成本适合城市通勤');
+                        }
+                        if (car.seats <= 5 && car.wheelbase < 2800) {
+                            score += 5;
+                        }
+                    }
+                    if (scenes.includes('scene2')) { // 家庭出行
+                        if (car.seats >= 5 && car.tags.includes('空间舒适')) {
+                            score += 15;
+                            reasons.push('大空间和舒适性适合家庭出行');
+                        }
+                        if (car.tags.includes('安全性')) {
+                            score += 10;
+                        }
+                    }
+                    if (scenes.includes('scene3')) { // 长途自驾
+                        if (car.energy === '燃油车' || (car.energy === '混动/增程' && car.range && !car.range.includes('N/A'))) {
+                            score += 10;
+                            reasons.push('长续航适合长途自驾');
+                        }
+                    }
+                    if (scenes.includes('scene4')) { // 户外越野
+                        if (car.type === 'SUV' && car.tags.includes('动力性能')) {
+                            score += 15;
+                            reasons.push('SUV 和强劲动力适合户外越野');
+                        }
+                    }
+                    if (scenes.includes('scene5')) { // 商务接待
+                        if (car.type === '轿车' && car.price.includes('20') || car.price.includes('30') || car.price.includes('40')) {
+                            score += 10;
+                            reasons.push('商务轿车适合接待');
+                        }
+                        if (car.tags.includes('安全性') || car.tags.includes('科技感')) {
+                            score += 5;
+                        }
+                    }
+                    
+                    // 偏好匹配
+                    const prefs = answers[5] || [];
+                    prefs.forEach(prefId => {
+                        const prefOpt = questions[4].options.find(o => o.id === prefId);
+                        if (prefOpt && car.tags.includes(prefOpt.value)) {
+                            score += 8;
+                        }
+                    });
+                    
+                    return {
+                        ...car,
+                        score: Math.min(score, 99),
+                        reasons: reasons.length > 0 ? reasons : ['综合表现优秀，符合您的多项需求']
+                    };
+                });
+                
+                // 排序
+                matchedCars.sort((a, b) => b.score - a.score);
+                
+                // 取前 5
+                matchedCars = matchedCars.slice(0, 5);
+                
+                showResults();
+            }, 1500);
+        }
+        
+        // 显示结果
+        function showResults() {
+            document.getElementById('question-page').classList.remove('active');
+            document.getElementById('result-page').classList.add('active');
+            
+            const content = document.getElementById('result-content');
+            let html = '';
+            
+            matchedCars.forEach((car, index) => {
+                html += `
+                    <div class="car-card">
+                        <div class="car-image">
+                            🚗
+                            <div class="match-badge">${car.score}%匹配</div>
+                        </div>
+                        <div class="car-info">
+                            <div class="car-brand">${car.brand}</div>
+                            <div class="car-name">${car.name}</div>
+                            <div class="car-price">¥${car.price}万</div>
+                            <div class="match-reason">
+                                <div class="match-reason-text">💡 ${car.reasons[0]}</div>
+                            </div>
+                            <div class="car-params">
+                                <div class="param-item">
+                                    <div class="param-label">能源</div>
+                                    <div class="param-value">${car.energy.replace('车','')}</div>
+                                </div>
+                                <div class="param-item">
+                                    <div class="param-label">座位</div>
+                                    <div class="param-value">${car.seats}座</div>
+                                </div>
+                                <div class="param-item">
+                                    <div class="param-label">轴距</div>
+                                    <div class="param-value">${car.wheelbase}mm</div>
+                                </div>
+                            </div>
+                            <div class="car-actions">
+                                <button class="action-btn btn-compare" onclick="toggleCompare(${index})">
+                                    ${compareList.includes(index) ? '✓ 已选' : '📊 对比'}
+                                </button>
+                                <button class="action-btn btn-buy" onclick="buyCar('${car.image}')">
+                                    🔍 去询价
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            content.innerHTML = html;
+        }
+        
+        // 切换对比
+        function toggleCompare(index) {
+            const pos = compareList.indexOf(index);
+            if (pos > -1) {
+                compareList.splice(pos, 1);
+            } else {
+                if (compareList.length >= 2) {
+                    showToast('最多选 2 款车对比');
+                    return;
+                }
+                compareList.push(index);
+            }
+            
+            updateCompareBar();
+            showResults(); // 重新渲染更新按钮状态
+        }
+        
+        // 更新对比栏
+        function updateCompareBar() {
+            const bar = document.getElementById('compare-bar');
+            const count = document.getElementById('compare-count');
+            const btn = document.getElementById('btn-confirm-compare');
+            
+            if (compareList.length > 0) {
+                bar.classList.add('show');
+                count.textContent = `已选${compareList.length}/2 款车对比`;
+                btn.disabled = compareList.length < 2;
+            } else {
+                bar.classList.remove('show');
+            }
+        }
+        
+        // 清空对比
+        function clearCompare() {
+            compareList = [];
+            updateCompareBar();
+            showResults();
+        }
+        
+        // 显示对比
+        function showCompare() {
+            document.getElementById('result-page').classList.remove('active');
+            document.getElementById('compare-page').classList.add('active');
+            document.getElementById('compare-bar').classList.remove('show');
+            
+            const grid = document.getElementById('compare-grid');
+            let html = '';
+            
+            compareList.forEach(index => {
+                const car = matchedCars[index];
+                html += `
+                    <div class="compare-car">
+                        <div class="compare-car-name">${car.brand} ${car.name}</div>
+                        <div class="compare-params">
+                            <div class="compare-param-row">
+                                <span class="compare-param-label">价格</span>
+                                <span class="compare-param-value">¥${car.price}万</span>
+                            </div>
+                            <div class="compare-param-row">
+                                <span class="compare-param-label">能源</span>
+                                <span class="compare-param-value">${car.energy}</span>
+                            </div>
+                            <div class="compare-param-row">
+                                <span class="compare-param-label">座位</span>
+                                <span class="compare-param-value">${car.seats}座</span>
+                            </div>
+                            <div class="compare-param-row">
+                                <span class="compare-param-label">轴距</span>
+                                <span class="compare-param-value">${car.wheelbase}mm</span>
+                            </div>
+                            <div class="compare-param-row">
+                                <span class="compare-param-label">智驾</span>
+                                <span class="compare-param-value">${car.drive}</span>
+                            </div>
+                            <div class="compare-param-row">
+                                <span class="compare-param-label">安全</span>
+                                <span class="compare-param-value">${car.safety}</span>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            grid.innerHTML = html;
+        }
+        
+        // 关闭对比
+        function closeCompare() {
+            document.getElementById('compare-page').classList.remove('active');
+            document.getElementById('result-page').classList.add('active');
+            updateCompareBar();
+        }
+        
+        // 购车
+        function buyCar(url) {
+            window.location.href = 'alipays://platformapi/startapp?appId=20002047&scene=carLife&source=chooseCar&stopover=1&fullScreen=true';
+        }
+        
+        // 重新开始
+        function restart() {
+            currentStep = 0;
+            answers = {};
+            compareList = [];
+            matchedCars = [];
+            
+            document.getElementById('result-page').classList.remove('active');
+            document.getElementById('welcome-page').classList.add('active');
+        }
+        
+        // 分享
+        function shareResult() {
+            if (matchedCars.length > 0) {
+                const topCar = matchedCars[0];
+                const text = `我在「秒选车」找到我的爱车：${topCar.brand} ${topCar.name}，匹配度${topCar.score}%！快来试试~`;
+                
+                if (navigator.share) {
+                    navigator.share({
+                        title: '秒选车',
+                        text: text,
+                        url: window.location.href
+                    });
+                } else {
+                    navigator.clipboard.writeText(text + ' ' + window.location.href);
+                    showToast('已复制到剪贴板');
+                }
+            }
+        }
+        
+        // Toast 提示
+        function showToast(message) {
+            const toast = document.getElementById('toast');
+            toast.textContent = message;
+            toast.classList.add('show');
+            setTimeout(() => toast.classList.remove('show'), 2000);
+        }
+        
+        // 初始化
+        init();
+    </script>
+</body>
+</html>

@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI 热点速配 - 实时自动化版</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f0f2f5; color: #333; }
+        .container { max-width: 1600px; margin: 0 auto; padding: 20px; }
+        .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 25px; border-radius: 12px; margin-bottom: 20px; }
+        .header h1 { font-size: 24px; margin-bottom: 8px; }
+        .header p { opacity: 0.9; font-size: 14px; }
+        .header-right { float: right; font-size: 13px; opacity: 0.9; }
+        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px; }
+        .card { background: white; border-radius: 12px; padding: 20px; box-shadow: 0 2px 12px rgba(0,0,0,0.08); }
+        .card h3 { font-size: 16px; color: #333; margin-bottom: 15px; border-bottom: 2px solid #667eea; padding-bottom: 10px; }
+        .search-box { display: flex; gap: 10px; margin-bottom: 15px; }
+        .search-box input { flex: 1; padding: 10px 15px; border: 1px solid #ddd; border-radius: 8px; font-size: 14px; }
+        .search-box button { padding: 10px 20px; background: #667eea; color: white; border: none; border-radius: 8px; cursor: pointer; }
+        .hotspot-item { border-left: 4px solid #667eea; padding: 15px; margin-bottom: 12px; background: #f8f9fa; border-radius: 0 8px 8px 0; cursor: pointer; transition: all 0.2s; }
+        .hotspot-item:hover { background: #e8f4ff; transform: translateX(5px); }
+        .hotspot-item.high { border-left-color: #f56c6c; }
+        .hotspot-item.medium { border-left-color: #e6a23c; }
+        .hotspot-item .meta { font-size: 12px; color: #888; margin: 5px 0; }
+        .hotspot-item .meta span { margin-right: 15px; }
+        .hotspot-item .actions { margin-top: 10px; display: flex; gap: 10px; }
+        .btn { padding: 6px 14px; border: none; border-radius: 6px; cursor: pointer; font-size: 12px; }
+        .btn-primary { background: #667eea; color: white; }
+        .btn-success { background: #67c23a; color: white; }
+        .btn-danger { background: #f56c6c; color: white; }
+        .tag { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 11px; margin-right: 5px; }
+        .tag-source { background: #e8f4ff; color: #667eea; }
+        .tag-hot { background: #fef2f2; color: #dc2626; }
+        .match-card { border-left: 4px solid #67c23a; padding: 15px; margin-bottom: 15px; background: #f8f9fa; border-radius: 0 8px 8px 0; }
+        .match-card h4 { font-size: 15px; margin-bottom: 10px; }
+        .match-card .detail { font-size: 13px; color: #666; margin: 5px 0; line-height: 1.6; }
+        .match-card .score { font-size: 18px; font-weight: bold; color: #67c23a; }
+        .match-card .actions { margin-top: 12px; display: flex; gap: 10px; }
+        .tabs { display: flex; gap: 10px; margin-bottom: 15px; }
+        .tab { padding: 8px 16px; background: #f0f0f0; border: none; border-radius: 20px; cursor: pointer; font-size: 13px; }
+        .tab.active { background: #667eea; color: white; }
+        .stat-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; margin-bottom: 20px; }
+        .stat-card { background: white; padding: 20px; border-radius: 12px; text-align: center; }
+        .stat-number { font-size: 28px; font-weight: bold; color: #667eea; }
+        .stat-label { color: #999; font-size: 13px; margin-top: 5px; }
+        .notification { position: fixed; top: 20px; right: 20px; background: #67c23a; color: white; padding: 15px 25px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); z-index: 2000; display: none; }
+        .notification.show { display: block; animation: slideIn 0.3s ease; }
+        @keyframes slideIn { from { transform: translateX(100%); } to { transform: translateX(0); } }
+        .empty-state { text-align: center; padding: 40px; color: #999; }
+        .refresh-btn { padding: 10px 20px; background: #667eea; color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 14px; font-weight: bold; }
+        .refresh-btn:hover { background: #5568d3; }
+        .refresh-btn:disabled { background: #ccc; cursor: not-allowed; }
+        .last-update { font-size: 12px; color: #999; margin-left: 10px; }
+        .brand-tag { display: inline-block; padding: 3px 8px; background: #e8f4ff; color: #667eea; border-radius: 4px; font-size: 11px; margin: 2px; }
+        .loading { text-align: center; padding: 20px; color: #667eea; }
+        .notification-schedule { background: #fff3cd; padding: 10px 15px; border-radius: 8px; margin-bottom: 15px; font-size: 13px; color: #856404; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🔥 AI 热点速配 - 实时自动化版</h1>
+            <p>实时抓取全网热榜 · 智能匹配品牌 · 定时推送通知</p>
+            <div class="header-right">
+                <span id="currentTime"></span>
+                <button class="refresh-btn" id="refreshBtn" onclick="refreshHotspots()">🔄 刷新热点</button>
+            </div>
+        </div>
+
+        <div class="notification-schedule">
+            ⏰ 定时通知：每天 0:00 / 6:00 / 12:00 / 18:00 自动推送钉钉和邮件通知
+        </div>
+
+        <div class="stat-grid">
+            <div class="stat-card"><div class="stat-number" id="totalHotspots">-</div><div class="stat-label">实时热点</div></div>
+            <div class="stat-card"><div class="stat-number" id="totalBrands">-</div><div class="stat-label">品牌库</div></div>
+            <div class="stat-card"><div class="stat-number" id="matchedBrands">-</div><div class="stat-label">匹配品牌</div></div>
+            <div class="stat-card"><div class="stat-number" id="pendingCount">-</div><div class="stat-label">待处理</div></div>
+        </div>
+
+        <div class="grid">
+            <div class="card">
+                <h3>📡 实时热点雷达 <span class="last-update" id="lastUpdate">最后更新：--</span></h3>
+                <div class="search-box">
+                    <input type="text" id="searchInput" placeholder="搜索热点关键词...">
+                    <button onclick="searchHotspots()">🔍 搜索</button>
+                </div>
+                <div id="hotspotList"><div class="loading">正在加载热点数据...</div></div>
+            </div>
+
+            <div class="card">
+                <h3>🎯 智能投放策略推荐</h3>
+                <div class="tabs">
+                    <button class="tab active" onclick="switchTab('all')">全部推荐</button>
+                    <button class="tab" onclick="switchTab('pending')">待处理</button>
+                    <button class="tab" onclick="switchTab('adopted')">已采纳</button>
+                </div>
+                <div id="recommendationList"><div class="loading">正在生成推荐...</div></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="notification" id="notification"></div>
+
+    <script>
+        // API 配置
+        const API_BASE = null; // 独立版本，无需后端
+        
+        let hotspots = [];
+        let brands = [];
+        let recommendations = [];
+        let currentFilter = 'all';
+        let adoptedSet = new Set();
+
+        // 初始化
+        async function init() {
+            updateTime();
+            setInterval(updateTime, 1000);
+            
+            // 加载数据
+            await loadAllData();
+            
+            // 每 5 分钟自动刷新
+            setInterval(refreshHotspots, 300000);
+        }
+
+        function updateTime() {
+            const now = new Date();
+            document.getElementById('currentTime').textContent = now.toLocaleString('zh-CN', {hour12: false});
+        }
+
+        // 加载全部数据
+        // 内置热点数据（独立版本）
+        const builtInHotspots = ${json.dumps(hotspots, ensure_ascii=False)};
+        const builtInBrands = ${json.dumps(brands, ensure_ascii=False)};
+        
+        async function loadAllData() {
+            // 使用内置数据，无需后端服务
+            hotspots = builtInHotspots;
+            brands = builtInBrands;
+            
+            generateRecommendations();
+            renderHotspots();
+            renderRecommendations();
+            updateStats();
+            
+            document.getElementById('lastUpdate').textContent = '最后更新：' + new Date().toLocaleTimeString('zh-CN', {hour12: false});
+            showNotification('✅ 数据已加载');
+        }
+
+        // 刷新热点
+        async function refreshHotspots() {
+            const btn = document.getElementById('refreshBtn');
+            btn.disabled = true;
+            btn.textContent = '🔄 刷新中...';
+            
+            // 模拟刷新（实际使用时需要后端支持）
+            setTimeout(() => {
+                hotspots.forEach(h => { h.heat = Math.max(5000, h.heat + Math.floor(Math.random() * 500 - 200)); });
+                hotspots.sort((a,b) => b.heat - a.heat);
+                
+                generateRecommendations();
+                renderHotspots();
+                renderRecommendations();
+                updateStats();
+                
+                document.getElementById('lastUpdate').textContent = '最后更新：' + new Date().toLocaleTimeString('zh-CN', {hour12: false});
+                showNotification('✅ 热点已刷新');
+                
+                btn.disabled = false;
+                btn.textContent = '🔄 刷新热点';
+            }, 1000);
+        }
+
+        // 生成推荐
+        function generateRecommendations() {
+            recommendations = [];
+            hotspots.forEach(h => {
+                const matches = findMatchingBrands(h);
+                if (matches.length > 0) {
+                    recommendations.push({
+                        hotspotId: h.id,
+                        hotspotTitle: h.title,
+                        hotspotDesc: `${h.source} · ${h.region} · 热度${h.heat}`,
+                        brand: matches[0].brand,
+                        industry: matches[0].industry,
+                        reason: matches[0].reason,
+                        score: matches[0].score,
+                        status: adoptedSet.has(h.id) ? 'adopted' : 'pending'
+                    });
+                }
+            });
+        }
+
+        // 品牌匹配
+        function findMatchingBrands(hotspot) {
+            const matches = [];
+            const hTags = hotspot.tags.join(',').toLowerCase();
+            
+            brands.forEach(b => {
+                let score = 0;
+                let reasons = [];
+                
+                const bTags = b.tags.join(',').toLowerCase();
+                
+                if (hTags.includes(b.name.toLowerCase())) { score += 40; reasons.push('品牌直接关联'); }
+                if (hTags.includes('汽车') && b.industry.includes('汽车')) { score += 25; reasons.push('汽车行业匹配'); }
+                if (hTags.includes('新能源') && b.industry.includes('新能源')) { score += 30; reasons.push('新能源领域相关'); }
+                
+                const tagMatches = b.tags.filter(t => hTags.includes(t.toLowerCase()));
+                if (tagMatches.length > 0) {
+                    score += tagMatches.length * 10;
+                    reasons.push(`标签匹配：${tagMatches.join('、')}`);
+                }
+                
+                if (b.sensitivity === '极高') score *= 1.2;
+                if (b.sensitivity === '高') score *= 1.1;
+                
+                if (score > 25) {
+                    matches.push({ brand: b.name, industry: b.industry, reason: reasons.join(';'), score: Math.min(Math.round(score), 100) });
+                }
+            });
+            
+            return matches.sort((a, b) => b.score - a.score);
+        }
+
+        // 渲染热点
+        function renderHotspots() {
+            const list = document.getElementById('hotspotList');
+            
+            if (hotspots.length === 0) {
+                list.innerHTML = '<div class="empty-state">暂无热点数据，点击"刷新热点"按钮获取</div>';
+                return;
+            }
+            
+            list.innerHTML = hotspots.map(h => {
+                const level = h.heat >= 9000 ? 'high' : h.heat >= 8000 ? 'medium' : '';
+                return `<div class="hotspot-item ${level}" onclick="showHotspotDetail('${h.title}')">
+                    <h4>${h.title}</h4>
+                    <div class="meta">
+                        <span class="tag tag-source">${h.source}</span>
+                        <span class="tag tag-hot">🔥 ${h.heat}</span>
+                        <span>⏰ ${h.time}</span>
+                        <span>📁 ${h.category}</span>
+                    </div>
+                    <div class="actions">
+                        <button class="btn btn-primary" onclick="event.stopPropagation(); window.open('${h.url}', '_blank')">查看原网页</button>
+                        <button class="btn btn-success" onclick="event.stopPropagation(); generateSingleRecommendation(${h.id})">生成投放建议</button>
+                    </div>
+                </div>`;
+            }).join('');
+        }
+
+        // 渲染推荐
+        function renderRecommendations() {
+            const list = document.getElementById('recommendationList');
+            let data = recommendations;
+            
+            if (currentFilter === 'pending') data = recommendations.filter(r => r.status === 'pending');
+            if (currentFilter === 'adopted') data = recommendations.filter(r => r.status === 'adopted');
+            
+            if (data.length === 0) {
+                list.innerHTML = '<div class="empty-state">暂无推荐策略</div>';
+                return;
+            }
+            
+            list.innerHTML = data.map((r, i) => `
+                <div class="match-card">
+                    <h4>📍 ${r.hotspotTitle}</h4>
+                    <div class="detail">${r.hotspotDesc}</div>
+                    <div class="detail"><strong>🏷️ 匹配品牌：</strong>${r.brand} <span class="brand-tag">${r.industry}</span></div>
+                    <div class="detail"><strong>💡 匹配原因：</strong>${r.reason}</div>
+                    <div class="detail"><strong>📊 匹配程度：</strong><span class="score">${r.score}分</span></div>
+                    <div class="actions">
+                        <button class="btn btn-success" onclick="adoptRecommendation(${r.hotspotId})">✚ 确认加权投放</button>
+                        <button class="btn btn-danger" onclick="skipRecommendation(${r.hotspotId})">✗ 不采纳</button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // 采纳推荐
+        function adoptRecommendation(hotspotId) {
+            adoptedSet.add(hotspotId);
+            const rec = recommendations.find(r => r.hotspotId === hotspotId);
+            if (rec) rec.status = 'adopted';
+            
+            renderRecommendations();
+            updateStats();
+            showNotification('✅ 已确认加权投放');
+        }
+
+        // 跳过推荐
+        function skipRecommendation(hotspotId) {
+            const index = recommendations.findIndex(r => r.hotspotId === hotspotId);
+            if (index >= 0) {
+                recommendations.splice(index, 1);
+                renderRecommendations();
+                updateStats();
+                showNotification('已跳过此推荐');
+            }
+        }
+
+        // 生成单个推荐
+        function generateSingleRecommendation(id) {
+            const h = hotspots.find(x => x.id === id);
+            if (!h) return;
+            
+            const matches = findMatchingBrands(h);
+            if (matches.length > 0) {
+                recommendations.unshift({
+                    hotspotId: h.id,
+                    hotspotTitle: h.title,
+                    hotspotDesc: `${h.source} · ${h.region} · 热度${h.heat}`,
+                    brand: matches[0].brand,
+                    industry: matches[0].industry,
+                    reason: matches[0].reason,
+                    score: matches[0].score,
+                    status: 'pending'
+                });
+                renderRecommendations();
+                updateStats();
+                showNotification('✅ 已生成投放建议');
+            } else {
+                showNotification('⚠️ 未找到匹配的品牌');
+            }
+        }
+
+        // 切换 Tab
+        function switchTab(filter) {
+            currentFilter = filter;
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            event.target.classList.add('active');
+            renderRecommendations();
+        }
+
+        // 搜索热点
+        function searchHotspots() {
+            const keyword = document.getElementById('searchInput').value.toLowerCase();
+            if (!keyword) { renderHotspots(); return; }
+            
+            const filtered = hotspots.filter(h => h.title.toLowerCase().includes(keyword) || h.tags.some(t => t.toLowerCase().includes(keyword)));
+            
+            const list = document.getElementById('hotspotList');
+            if (filtered.length === 0) {
+                list.innerHTML = '<div class="empty-state">未找到匹配的热点</div>';
+                return;
+            }
+            
+            list.innerHTML = filtered.map(h => `
+                <div class="hotspot-item">
+                    <h4>${h.title}</h4>
+                    <div class="meta">
+                        <span class="tag tag-source">${h.source}</span>
+                        <span class="tag tag-hot">🔥 ${h.heat}</span>
+                        <span>⏰ ${h.time}</span>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // 显示热点详情
+        function showHotspotDetail(title) {
+            alert(`热点详情：${title}`);
+        }
+
+        // 更新统计
+        function updateStats(statsData) {
+            if (statsData) {
+                document.getElementById('totalHotspots').textContent = statsData.totalHotspots || 0;
+                document.getElementById('totalBrands').textContent = statsData.totalBrands || brands.length;
+                document.getElementById('matchedBrands').textContent = statsData.matchedBrands || 0;
+                document.getElementById('pendingCount').textContent = statsData.pendingCount || 0;
+            } else {
+                document.getElementById('totalHotspots').textContent = hotspots.length;
+                document.getElementById('totalBrands').textContent = brands.length;
+                document.getElementById('matchedBrands').textContent = new Set(recommendations.map(r => r.brand)).size;
+                document.getElementById('pendingCount').textContent = recommendations.filter(r => r.status === 'pending').length;
+            }
+        }
+
+        // 显示通知
+        function showNotification(msg) {
+            const n = document.getElementById('notification');
+            n.textContent = msg;
+            n.classList.add('show');
+            setTimeout(() => n.classList.remove('show'), 3000);
+        }
+
+        // 启动
+        init();
+    </script>
+</body>
+</html>

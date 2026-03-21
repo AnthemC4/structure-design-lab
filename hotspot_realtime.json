@@ -1,0 +1,327 @@
+{
+  "success": true,
+  "data": [
+    {
+      "id": 1,
+      "title": "披着玩具外衣的蝴蝶刀暗藏风险 安全隐患需警惕",
+      "source": "南方新闻网",
+      "region": "全国",
+      "category": "社会",
+      "heat": 9800,
+      "time": "刚刚",
+      "publishTime": "2026-03-11T18:48:38+08:00",
+      "url": "https://news.southcn.com/",
+      "tags": [
+        "社会",
+        "安全"
+      ],
+      "isExpanded": false
+    },
+    {
+      "id": 2,
+      "title": "陈浩民夫妇自述撤离迪拜细节 大难不死最安全还是中国",
+      "source": "南方新闻网",
+      "region": "全国",
+      "category": "娱乐",
+      "heat": 9600,
+      "time": "刚刚",
+      "publishTime": "2026-03-11T18:48:05+08:00",
+      "url": "https://news.southcn.com/",
+      "tags": [
+        "娱乐",
+        "明星"
+      ],
+      "isExpanded": false
+    },
+    {
+      "id": 3,
+      "title": "迫使美以退让 伊朗要打持久战",
+      "source": "南方新闻网",
+      "region": "国际",
+      "category": "财经",
+      "heat": 9400,
+      "time": "1 小时前",
+      "publishTime": "2026-03-11T18:30:47+08:00",
+      "url": "https://news.southcn.com/",
+      "tags": [
+        "财经",
+        "国际"
+      ],
+      "isExpanded": false
+    },
+    {
+      "id": 4,
+      "title": "100% 椰子水被曝造假 你喝的可能只是高级糖水",
+      "source": "南方新闻网",
+      "region": "全国",
+      "category": "社会",
+      "heat": 9200,
+      "time": "1 小时前",
+      "publishTime": "2026-03-11T18:15:56+08:00",
+      "url": "https://news.southcn.com/",
+      "tags": [
+        "社会",
+        "消费"
+      ],
+      "isExpanded": false
+    },
+    {
+      "id": 5,
+      "title": "中国政府中东问题特使此刻正在地区穿梭访问",
+      "source": "南方新闻网",
+      "region": "国际",
+      "category": "财经",
+      "heat": 9000,
+      "time": "1 小时前",
+      "publishTime": "2026-03-11T18:15:09+08:00",
+      "url": "https://news.southcn.com/",
+      "tags": [
+        "财经",
+        "国际"
+      ],
+      "isExpanded": false
+    },
+    {
+      "id": 6,
+      "title": "西红柿为啥没有以前的味儿了 委员热议",
+      "source": "南方新闻网",
+      "region": "全国",
+      "category": "社会",
+      "heat": 8800,
+      "time": "2 小时前",
+      "publishTime": "2026-03-11T18:04:51+08:00",
+      "url": "https://news.southcn.com/",
+      "tags": [
+        "社会",
+        "民生"
+      ],
+      "isExpanded": false
+    },
+    {
+      "id": 7,
+      "title": "依法严惩 男子为移民境外企图出卖涉密资料",
+      "source": "南方新闻网",
+      "region": "全国",
+      "category": "社会",
+      "heat": 8600,
+      "time": "2 小时前",
+      "publishTime": "2026-03-11T18:04:16+08:00",
+      "url": "https://news.southcn.com/",
+      "tags": [
+        "社会",
+        "法律"
+      ],
+      "isExpanded": false
+    },
+    {
+      "id": 8,
+      "title": "中药手串是真养生还是纯噱头 专家有一定功效但需理性看待",
+      "source": "南方新闻网",
+      "region": "全国",
+      "category": "社会",
+      "heat": 8400,
+      "time": "2 小时前",
+      "publishTime": "2026-03-11T17:55:46+08:00",
+      "url": "https://news.southcn.com/",
+      "tags": [
+        "社会",
+        "健康"
+      ],
+      "isExpanded": false
+    },
+    {
+      "id": 9,
+      "title": "杜锋率队客战新疆 回到家乡感觉十分熟悉 崔永熙复出在即",
+      "source": "南方新闻网",
+      "region": "全国",
+      "category": "体育",
+      "heat": 8200,
+      "time": "3 小时前",
+      "publishTime": "2026-03-11T17:43:20+08:00",
+      "url": "https://news.southcn.com/",
+      "tags": [
+        "体育",
+        "CBA"
+      ],
+      "isExpanded": false
+    },
+    {
+      "id": 10,
+      "title": "杭州西湖出现老鼠在水中和鱼抢食 景区工作人员回应",
+      "source": "南方新闻网",
+      "region": "浙江",
+      "category": "社会",
+      "heat": 8000,
+      "time": "3 小时前",
+      "publishTime": "2026-03-11T17:39:35+08:00",
+      "url": "https://news.southcn.com/",
+      "tags": [
+        "社会",
+        "热点"
+      ],
+      "isExpanded": false
+    },
+    {
+      "id": 11,
+      "title": "四大证券报头版头条 资本市场改革发展部署",
+      "source": "百家号",
+      "region": "全国",
+      "category": "财经",
+      "heat": 7800,
+      "time": "3 小时前",
+      "publishTime": "2026-03-11T16:50:07+08:00",
+      "url": "https://baijiahao.baidu.com/",
+      "tags": [
+        "财经",
+        "股市"
+      ],
+      "isExpanded": false
+    },
+    {
+      "id": 12,
+      "title": "特朗普无迹象表明俄罗斯在支持伊朗",
+      "source": "国际在线",
+      "region": "国际",
+      "category": "财经",
+      "heat": 7600,
+      "time": "4 小时前",
+      "publishTime": "2026-03-11T09:10:00+08:00",
+      "url": "https://news.cri.cn/",
+      "tags": [
+        "财经",
+        "国际"
+      ],
+      "isExpanded": false
+    },
+    {
+      "id": 13,
+      "title": "环球市场情报 印度基金净卖出 550 亿卢比印度股票",
+      "source": "财联社",
+      "region": "国际",
+      "category": "财经",
+      "heat": 7400,
+      "time": "4 小时前",
+      "publishTime": "2026-03-11T19:03:00+08:00",
+      "url": "https://www.cls.cn/",
+      "tags": [
+        "财经",
+        "股市"
+      ],
+      "isExpanded": false
+    },
+    {
+      "id": 14,
+      "title": "魔术 vs 骑士前瞻 一场势均力敌的较量",
+      "source": "新浪网",
+      "region": "全国",
+      "category": "体育",
+      "heat": 7200,
+      "time": "5 小时前",
+      "publishTime": "2026-03-11T19:03:00+08:00",
+      "url": "https://sports.sina.cn/",
+      "tags": [
+        "体育",
+        "NBA"
+      ],
+      "isExpanded": false
+    },
+    {
+      "id": 15,
+      "title": "新闻月历 2026 年 3 月两会启幕 重要时间节点汇总",
+      "source": "百家号",
+      "region": "全国",
+      "category": "社会",
+      "heat": 7000,
+      "time": "5 小时前",
+      "publishTime": "2026-03-11T00:00:00+08:00",
+      "url": "https://baijiahao.baidu.com/",
+      "tags": [
+        "社会",
+        "政策"
+      ],
+      "isExpanded": false
+    },
+    {
+      "id": 16,
+      "title": "欧冠 26 亿欧对决 皇马 7 人受伤 哈兰德冲击历史",
+      "source": "新浪网",
+      "region": "国际",
+      "category": "体育",
+      "heat": 6800,
+      "time": "6 小时前",
+      "publishTime": "2026-03-11T19:00:00+08:00",
+      "url": "https://sports.sina.cn/",
+      "tags": [
+        "体育",
+        "欧冠"
+      ],
+      "isExpanded": false
+    },
+    {
+      "id": 17,
+      "title": "皇马曼城共 8 人有染黄停赛风险",
+      "source": "新浪网",
+      "region": "国际",
+      "category": "体育",
+      "heat": 6600,
+      "time": "6 小时前",
+      "publishTime": "2026-03-11T19:00:00+08:00",
+      "url": "https://sports.sina.cn/",
+      "tags": [
+        "体育",
+        "欧冠"
+      ],
+      "isExpanded": false
+    },
+    {
+      "id": 18,
+      "title": "全国政协十四届四次会议今开幕 3 月 11 日上午闭幕",
+      "source": "华商网",
+      "region": "全国",
+      "category": "社会",
+      "heat": 6400,
+      "time": "7 小时前",
+      "publishTime": "2026-03-11T15:00:00+08:00",
+      "url": "https://news.hsw.cn/",
+      "tags": [
+        "社会",
+        "政策"
+      ],
+      "isExpanded": false
+    },
+    {
+      "id": 19,
+      "title": "山东省政府新闻办 3 月 11 日举行国土绿化行动发布会",
+      "source": "齐鲁网",
+      "region": "山东",
+      "category": "社会",
+      "heat": 6200,
+      "time": "7 小时前",
+      "publishTime": "2026-03-11T10:00:00+08:00",
+      "url": "http://www.iqilu.com/",
+      "tags": [
+        "社会",
+        "政策"
+      ],
+      "isExpanded": false
+    },
+    {
+      "id": 20,
+      "title": "国际消费者权益日 315 晚会聚焦产品质量服务规范",
+      "source": "百家号",
+      "region": "全国",
+      "category": "社会",
+      "heat": 6000,
+      "time": "8 小时前",
+      "publishTime": "2026-03-11T00:00:00+08:00",
+      "url": "https://baijiahao.baidu.com/",
+      "tags": [
+        "社会",
+        "消费"
+      ],
+      "isExpanded": false
+    }
+  ],
+  "lastFetchTime": "2026-03-11T22:05:00+08:00",
+  "source": "阿里云百炼 web_search MCP 实时获取"
+}

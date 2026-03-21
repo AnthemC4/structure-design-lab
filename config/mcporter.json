@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "WebSearch": {
+      "baseUrl": "https://dashscope.aliyuncs.com/api/v1/mcps/WebSearch/mcp",
+      "headers": {
+        "Authorization": "Bearer sk-32c79eb638574359872ce7e35c5ef67f"
+      }
+    }
+  },
+  "imports": []
+}

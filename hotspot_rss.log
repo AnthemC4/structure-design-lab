@@ -1,0 +1,22 @@
+[INFO] 加载品牌数据：170个
+[INFO] 历史数据加载成功
+[INFO] 抓取 RSS 热榜...
+
+🚀 AI 热点速配 - RSS 热榜版
+📍 端口：3000
+🏭 品牌数量：170个
+📡 RSS 源：微博热搜、知乎热榜、百度热搜、抖音热榜、今日头条
+📊 数据文件：/root/.openclaw/workspace/hotspot_data.json
+🔄 自动刷新：每 5 分钟
+
+[INFO] 热点更新完成，共10条
+[INFO] 抓取 RSS 热榜...
+[INFO] 热点更新完成，共10条
+[INFO] 抓取 RSS 热榜...
+[INFO] 热点更新完成，共10条
+[INFO] 抓取 RSS 热榜...
+[INFO] 热点更新完成，共10条
+[INFO] 抓取 RSS 热榜...
+[INFO] 热点更新完成，共10条
+[INFO] 抓取 RSS 热榜...
+[INFO] 热点更新完成，共10条

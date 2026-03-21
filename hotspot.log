@@ -1,0 +1,19 @@
+[INFO] 数据加载成功
+[INFO] 抓取百度热榜...
+[INFO] 抓取微博热榜...
+[INFO] 抓取知乎热榜...
+[INFO] 定时通知任务已启动（0/6/12/18 点）
+
+🚀 AI 热点速配后端服务已启动
+📍 端口：3000
+📊 数据文件：/root/.openclaw/workspace/hotspot_data.json
+📋 通知日志：/root/.openclaw/workspace/notification_log.json
+
+API 接口:
+  GET  /api/hotspots      - 获取热点列表
+  POST /api/hotspots/refresh - 刷新热点
+  GET  /api/brands        - 获取品牌列表
+  GET  /api/recommendations - 获取推荐策略
+  GET  /api/stats         - 获取统计数据
+
+[INFO] 热点更新完成，共10条

@@ -1,0 +1,21 @@
+[INFO] 加载品牌数据：170个
+[INFO] 历史数据加载成功
+[INFO] 抓取百度热榜...
+
+🚀 AI 热点速配 - 完整版（170 品牌）
+📍 端口：3000
+🏭 品牌数量：170个
+📊 数据文件：/root/.openclaw/workspace/hotspot_data.json
+🔄 自动刷新：每 10 分钟
+
+API 接口:
+  GET  /api/hotspots      - 获取热点列表
+  POST /api/hotspots/refresh - 刷新热点
+  GET  /api/brands        - 获取品牌列表（170个）
+  GET  /api/stats         - 获取统计数据
+
+[INFO] 热点更新完成，共10条
+[INFO] 抓取百度热榜...
+[INFO] 热点更新完成，共10条
+[INFO] 抓取百度热榜...
+[INFO] 热点更新完成，共10条

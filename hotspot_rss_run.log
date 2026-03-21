@@ -1,0 +1,14 @@
+[INFO] 加载品牌数据：487个
+[INFO] 历史数据加载成功
+[INFO] 调用阿里云百炼 web_search 获取多渠道实时热点...
+
+🚀 AI 热点速配 - 阿里云百炼版
+📍 端口：3000
+🏭 品牌数量：487个
+🤖 数据源：阿里云百炼 qwen3.5-plus
+📊 数据文件：/root/.openclaw/workspace/hotspot_data.json
+🔄 自动刷新：每 5 分钟
+
+[INFO] 搜索结果不足，使用备用数据
+[INFO] 获取多渠道热点20条
+[INFO] 热点更新完成，共20条

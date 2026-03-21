@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI 驱动的公交地铁智能运营系统</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background: #f5f7fa; color: #333; }
+        .container { max-width: 1600px; margin: 0 auto; padding: 20px; }
+        .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; border-radius: 12px; margin-bottom: 20px; }
+        .header h1 { font-size: 28px; margin-bottom: 10px; }
+        .header p { opacity: 0.9; }
+        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; margin-bottom: 20px; }
+        .card { background: white; border-radius: 12px; padding: 20px; box-shadow: 0 2px 12px rgba(0,0,0,0.08); }
+        .card h3 { font-size: 16px; color: #666; margin-bottom: 15px; border-bottom: 1px solid #eee; padding-bottom: 10px; }
+        .stat-number { font-size: 36px; font-weight: bold; color: #667eea; }
+        .stat-label { color: #999; font-size: 14px; margin-top: 5px; }
+        .chart-container { position: relative; height: 250px; }
+        table { width: 100%; border-collapse: collapse; font-size: 13px; }
+        th, td { padding: 12px; text-align: left; border-bottom: 1px solid #eee; }
+        th { background: #f8f9fa; font-weight: 600; color: #666; }
+        .priority-high { color: #f56c6c; font-weight: bold; }
+        .priority-medium { color: #e6a23c; font-weight: bold; }
+        .lift { color: #67c23a; font-weight: bold; }
+        .dap-cost { color: #e6a23c; font-weight: bold; }
+        .tabs { display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; }
+        .tab { padding: 10px 20px; background: white; border: none; border-radius: 8px; cursor: pointer; font-size: 14px; }
+        .tab.active { background: #667eea; color: white; }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+        .metric-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; }
+        .metric-item { background: #f8f9fa; padding: 15px; border-radius: 8px; }
+        .metric-name { font-size: 14px; color: #666; margin-bottom: 5px; }
+        .metric-values { display: flex; justify-content: space-between; align-items: center; }
+        .metric-before { color: #999; }
+        .metric-after { color: #67c23a; font-weight: bold; }
+        .metric-improve { color: #667eea; font-size: 12px; }
+        .footer { text-align: center; padding: 20px; color: #999; font-size: 12px; }
+        .user-type-card { border-left: 4px solid; padding: 15px; margin-bottom: 15px; background: #f8f9fa; border-radius: 0 8px 8px 0; }
+        .user-type-card h4 { font-size: 16px; margin-bottom: 8px; }
+        .user-type-card .def { color: #666; font-size: 14px; margin-bottom: 10px; }
+        .user-type-card .features { font-size: 13px; color: #888; }
+        .user-type-card .strategy { font-size: 13px; color: #667eea; margin-top: 8px; }
+        .badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 12px; color: white; margin-right: 5px; }
+        .strategy-row { cursor: pointer; transition: background 0.2s; }
+        .strategy-row:hover { background: #f0f4ff; }
+        .view-btn { padding: 4px 12px; background: #667eea; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px; margin-right: 6px; }
+        .view-btn:hover { background: #5568d3; }
+        .adopt-btn { padding: 4px 12px; background: #67c23a; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px; }
+        .adopt-btn:hover { background: #55a82e; }
+        .execution-panel { display: none; background: #f8f9fa; padding: 20px; margin-top: 10px; border-radius: 8px; }
+        .execution-panel.active { display: block; }
+        .execution-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin-top: 15px; }
+        .execution-section { background: white; padding: 15px; border-radius: 8px; }
+        .execution-section h4 { font-size: 14px; color: #666; margin-bottom: 10px; border-bottom: 2px solid #667eea; padding-bottom: 8px; }
+        .execution-item { padding: 8px 0; border-bottom: 1px solid #eee; font-size: 13px; }
+        .execution-item:last-child { border-bottom: none; }
+        .execution-item .label { color: #999; font-size: 12px; }
+        .tag { display: inline-block; padding: 2px 6px; background: #e8f4ff; color: #667eea; border-radius: 3px; font-size: 11px; margin-right: 4px; }
+        .close-panel { float: right; cursor: pointer; color: #999; font-size: 18px; }
+        .close-panel:hover { color: #666; }
+        .category-filter { display: flex; gap: 10px; margin-bottom: 15px; flex-wrap: wrap; }
+        .filter-btn { padding: 6px 14px; background: #f0f0f0; border: none; border-radius: 20px; cursor: pointer; font-size: 13px; }
+        .filter-btn.active { background: #667eea; color: white; }
+        .insight-card { border-left: 4px solid; padding: 15px; margin-bottom: 12px; background: #f8f9fa; border-radius: 0 8px 8px 0; }
+        .insight-card.high { border-left-color: #f56c6c; }
+        .insight-card.medium { border-left-color: #e6a23c; }
+        .insight-card.low { border-left-color: #67c23a; }
+        .insight-card h4 { font-size: 15px; margin-bottom: 8px; }
+        .insight-card .detail { font-size: 13px; color: #666; margin: 5px 0; }
+        .insight-card .suggestion { font-size: 13px; color: #667eea; margin-top: 8px; }
+        .adopted-badge { background: #67c23a; color: white; padding: 2px 8px; border-radius: 4px; font-size: 11px; }
+        .section-note { font-size: 12px; color: #999; margin-top: 10px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🚇 AI 驱动的公交地铁智能运营系统</h1>
+            <p>智能用户分层 · 策略推荐 · 效果预测</p>
+        </div>
+        <div class="tabs">
+            <button class="tab active" onclick="showTab('dashboard')">📊 数据分析</button>
+            
+            <button class="tab" onclick="showTab('strategies')">🎯 策略建议</button>
+        </div>
+        <div id="dashboard" class="tab-content active">
+            <div class="grid">
+                <div class="card"><h3>总用户数</h3><div class="stat-number">2,000</div><div class="stat-label">覆盖 5 个核心城市</div></div>
+                <div class="card"><h3>出行记录</h3><div class="stat-number">97,951</div><div class="stat-label">2025.12.01 - 2026.02.28</div></div>
+                <div class="card"><h3>优惠券核销率</h3><div class="stat-number">59.7%</div><div class="stat-label">共发放 6,964 张</div></div>
+                <div class="card"><h3>触达转化率</h3><div class="stat-number">22.3%</div><div class="stat-label">点击率 45.1%</div></div>
+            </div>
+            <div class="card" style="margin-bottom: 20px;"><h3>🔥 市场机会</h3><div id="marketOpportunities"></div></div>
+            <div class="card" style="margin-bottom: 20px;"><h3>📍 业务空间</h3><div id="businessSpace"></div></div>
+            <div class="card" style="margin-bottom: 20px;"><h3>⚠️ 数据异动</h3><div id="dataAnomalies"></div></div>
+            <div class="card" style="margin-bottom: 20px;"><h3>⚡ 策略效能</h3><div id="strategyEfficiency"></div></div>
+            <div class="grid">
+                <div class="card"><h3>用户分层分布</h3><div class="chart-container"><canvas id="userTypeChart"></canvas></div></div>
+                <div class="card"><h3>各渠道触达效果</h3><div class="chart-container"><canvas id="channelChart"></canvas></div></div>
+            </div>
+            <div class="card"><h3>每日出行趋势</h3><div class="chart-container"><canvas id="trendChart"></canvas></div></div>
+        </div>
+        <div id="segmentation" class="tab-content">
+            <div class="card">
+                <h3>AI 用户分层定义与说明</h3>
+                <p style="color: #666; margin-bottom: 20px; line-height: 1.6;">基于用户出行行为、频次、时间分布等多维度特征，通过 AI 算法自动识别用户类型，为精细化运营提供数据支撑。</p>
+                <div id="userTypeDefinitions"></div>
+            </div>
+            <div class="grid">
+                <div class="card"><h3>用户分层分布</h3><div class="chart-container"><canvas id="segmentDistChart"></canvas></div></div>
+                <div class="card"><h3>分层统计</h3><table><thead><tr><th>用户类型</th><th>人数</th><th>占比</th></tr></thead><tbody id="segmentStats"></tbody></table></div>
+            </div>
+        </div>
+        <div id="strategies" class="tab-content">
+            <div class="card">
+                <h3>AI 推荐运营策略</h3>
+                <p style="color: #666; margin-bottom: 15px; font-size: 13px;">💡 点击策略行或"查看详情"按钮，查看执行方案（投放活动、渠道、素材）</p>
+                <div class="category-filter">
+                    <button class="filter-btn active" onclick="filterStrategies('all')">全部</button>
+                    <button class="filter-btn" onclick="filterStrategies('人群策略')">👥 人群策略</button>
+                    <button class="filter-btn" onclick="filterStrategies('市场机会')">🔥 市场机会</button>
+                    <button class="filter-btn" onclick="filterStrategies('业务空间')">📍 业务空间</button>
+                    <button class="filter-btn" onclick="filterStrategies('数据异动')">⚠️ 数据异动</button>
+                    <button class="filter-btn" onclick="filterStrategies('策略效能')">⚡ 策略效能</button>
+                </div>
+                <table><thead><tr><th>策略名称</th><th>类别</th><th>目标用户</th><th>核心动作</th><th>预期 DAU 提升</th><th>预估 DAP 增量成本</th><th>优先级</th><th>操作</th></tr></thead><tbody id="strategyTableBody"></tbody></table>
+                <p class="section-note">注：点击"采纳"按钮后，策略将进入执行队列，可跟踪执行进度和效果</p>
+            </div>
+        </div>
+        <div class="footer">AI 命题发布活动作品 | 生成时间：<span id="genTime"></span> | 演示数据</div>
+    </div>
+    <script>
+        const strategies = [{"category":"人群策略","name":"通勤族稳固计划","target":"核心通勤族","action":"周卡/月卡推荐 + 到期提醒","expected_lift":"15%","priority":"高","dap_cost":45,"activities":[{"name":"周卡 8 折优惠","type":"优惠券","budget":"50,000 元"},{"name":"月卡买一送一","type":"促销活动","budget":"80,000 元"},{"name":"连续乘车打卡","type":"互动活动","budget":"30,000 元"}],"channels":[{"name":"APP 推送","ratio":"40%","timing":"早 7:00 / 晚 18:00"},{"name":"短信","ratio":"30%","timing":"周卡到期前 3 天"},{"name":"抖音广告投流","ratio":"20%","timing":"工作日早晚高峰"},{"name":"手机厂商","ratio":"10%","timing":"负一屏推送"}],"materials":[{"name":"通勤族专属优惠海报","type":"图片","spec":"750x1334 PNG"},{"name":"周卡到期提醒文案","type":"文案","spec":"50 字以内"},{"name":"乘车打卡动画","type":"动图","spec":"400x400 GIF"},{"name":"月卡促销短视频","type":"视频","spec":"15 秒 MP4"}]},{"category":"人群策略","name":"低频用户激活","target":"偶尔出行","action":"场景化优惠券 + 出行建议推送","expected_lift":"20%","priority":"高","dap_cost":58,"activities":[{"name":"新人首乘立减","type":"优惠券","budget":"40,000 元"},{"name":"雨天出行补贴","type":"场景活动","budget":"25,000 元"},{"name":"节假日特惠","type":"促销活动","budget":"35,000 元"}],"channels":[{"name":"APP 推送","ratio":"35%","timing":"出行前 1 小时"},{"name":"抖音广告投流","ratio":"35%","timing":"信息流推荐"},{"name":"短信","ratio":"20%","timing":"周末上午"},{"name":"手机厂商","ratio":"10%","timing":"智能场景触发"}],"materials":[{"name":"场景化优惠海报","type":"图片","spec":"750x1334 PNG"},{"name":"雨天关怀文案","type":"文案","spec":"40 字以内"},{"name":"节假日活动 Banner","type":"图片","spec":"1080x600 PNG"},{"name":"使用引导短视频","type":"视频","spec":"30 秒 MP4"}]},{"category":"人群策略","name":"周末出行促进","target":"周末出行","action":"周末特惠券 + 活动推荐","expected_lift":"18%","priority":"中","dap_cost":52,"activities":[{"name":"周末双倍积分","type":"积分活动","budget":"20,000 元"},{"name":"商圈联券包","type":"联合营销","budget":"45,000 元"},{"name":"周末随机免单","type":"抽奖活动","budget":"30,000 元"}],"channels":[{"name":"APP 推送","ratio":"30%","timing":"周五下午 15:00"},{"name":"抖音广告投流","ratio":"40%","timing":"周五 - 周日全天"},{"name":"手机厂商","ratio":"20%","timing":"周末早晨"},{"name":"短信","ratio":"10%","timing":"周六上午"}],"materials":[{"name":"周末特惠主视觉","type":"图片","spec":"750x1334 PNG"},{"name":"商圈地图海报","type":"图片","spec":"1080x1920 PNG"},{"name":"周末活动文案","type":"文案","spec":"60 字以内"},{"name":"抽奖动画","type":"动图","spec":"500x500 GIF"}]},{"category":"人群策略","name":"流失用户召回","target":"流失风险","action":"大额召回券 + 个性化文案","expected_lift":"10%","priority":"高","dap_cost":68,"activities":[{"name":"回归大礼包","type":"优惠券包","budget":"60,000 元"},{"name":"老用户专属福利","type":"会员活动","budget":"40,000 元"},{"name":"邀请好友双赢","type":"裂变活动","budget":"50,000 元"}],"channels":[{"name":"短信","ratio":"40%","timing":"流失后第 7/14/30 天"},{"name":"抖音广告投流","ratio":"30%","timing":"再营销广告"},{"name":"APP 推送","ratio":"20%","timing":"晚间 20:00"},{"name":"手机厂商","ratio":"10%","timing":"智能推送"}],"materials":[{"name":"召回主题海报","type":"图片","spec":"750x1334 PNG"},{"name":"个性化召回文案","type":"文案","spec":"70 字以内"},{"name":"老用户福利说明图","type":"图片","spec":"1080x1350 PNG"},{"name":"品牌情感短视频","type":"视频","spec":"20 秒 MP4"}]},{"category":"人群策略","name":"沉睡用户唤醒","target":"已流失","action":"超大额券 + 多渠道触达","expected_lift":"8%","priority":"中","dap_cost":72,"activities":[{"name":"唤醒超级红包","type":"现金券","budget":"80,000 元"},{"name":"新用户待遇回归","type":"身份活动","budget":"50,000 元"},{"name":"限时回归特权","type":"限时活动","budget":"40,000 元"}],"channels":[{"name":"短信","ratio":"35%","timing":"每月 1 日/15 日"},{"name":"抖音广告投流","ratio":"35%","timing":"持续投放"},{"name":"手机厂商","ratio":"20%","timing":"系统级推送"},{"name":"APP 推送","ratio":"10%","timing":"不定期"}],"materials":[{"name":"唤醒活动主 KV","type":"图片","spec":"750x1334 PNG"},{"name":"超级红包文案","type":"文案","spec":"50 字以内"},{"name":"特权说明长图","type":"图片","spec":"750x2000 PNG"},{"name":"品牌召回视频","type":"视频","spec":"25 秒 MP4"}]},{"category":"市场机会","name":"演唱会交通保障","target":"周杰伦演唱会观众","action":"演唱会专属交通券包 + 场馆周边商圈联动","expected_lift":"35%","priority":"高","dap_cost":55,"activities":[{"name":"演唱会往返券","type":"场景券","budget":"100,000 元"},{"name":"场馆商圈联券","type":"联合营销","budget":"80,000 元"},{"name":"散场快速通道","type":"服务优化","budget":"20,000 元"}],"channels":[{"name":"抖音广告投流","ratio":"50%","timing":"演唱会前 7 天开始"},{"name":"微博热搜","ratio":"30%","timing":"演唱会前 3 天"},{"name":"APP 推送","ratio":"20%","timing":"演唱会当天"}],"materials":[{"name":"演唱会主题海报","type":"图片","spec":"750x1334 PNG"},{"name":"艺人授权素材","type":"图片","spec":"1080x1920 PNG"},{"name":"交通指引视频","type":"视频","spec":"30 秒 MP4"}]},{"category":"市场机会","name":"车展专线优惠","target":"上海国际车展参观者","action":"展会专线优惠 + 参展商合作发券","expected_lift":"50%","priority":"高","dap_cost":62,"activities":[{"name":"展会专线 5 折","type":"交通券","budget":"150,000 元"},{"name":"参展商联名券","type":"合作券","budget":"100,000 元"},{"name":"打卡集章活动","type":"互动活动","budget":"50,000 元"}],"channels":[{"name":"抖音广告投流","ratio":"40%","timing":"展会期间全天"},{"name":"展会现场广告","ratio":"40%","timing":"展会期间"},{"name":"参展商渠道","ratio":"20%","timing":"展会前预热"}],"materials":[{"name":"车展主题 KV","type":"图片","spec":"1080x1920 PNG"},{"name":"参展商合作海报","type":"图片","spec":"750x1334 PNG"},{"name":"集章活动 H5","type":"互动","spec":"移动端 H5"}]},{"category":"业务空间","name":"杭州渗透率提升","target":"杭州未开通乘车码用户","action":"对标上海拉齐渗透率至 58%","expected_lift":"16%","priority":"高","dap_cost":48,"activities":[{"name":"首乘免费","type":"拉新券","budget":"200,000 元"},{"name":"地铁广告引流","type":"线下广告","budget":"150,000 元"},{"name":"社区地推活动","type":"线下活动","budget":"80,000 元"}],"channels":[{"name":"抖音广告投流","ratio":"40%","timing":"持续投放"},{"name":"地铁灯箱广告","ratio":"35%","timing":"早高峰"},{"name":"社区微信群","ratio":"25%","timing":"晚间"}],"materials":[{"name":"首乘免费海报","type":"图片","spec":"750x1334 PNG"},{"name":"地铁灯箱广告","type":"图片","spec":"3000x4000 PNG"},{"name":"开通引导视频","type":"视频","spec":"20 秒 MP4"}]},{"category":"业务空间","name":"广州月活提升","target":"广州低频用户","action":"对标深圳提升月活至 48%","expected_lift":"13%","priority":"高","dap_cost":52,"activities":[{"name":"月活打卡挑战","type":"互动活动","budget":"100,000 元"},{"name":"广佛同城券","type":"区域券","budget":"120,000 元"},{"name":"企业团购优惠","type":"B2B 合作","budget":"80,000 元"}],"channels":[{"name":"APP 推送","ratio":"40%","timing":"月初/月中"},{"name":"抖音广告投流","ratio":"35%","timing":"工作日"},{"name":"企业合作渠道","ratio":"25%","timing":"工作日"}],"materials":[{"name":"打卡挑战海报","type":"图片","spec":"750x1334 PNG"},{"name":"广佛同城 KV","type":"图片","spec":"1080x1920 PNG"},{"name":"企业福利 H5","type":"互动","spec":"移动端 H5"}]},{"category":"数据异动","name":"深圳竞对应对","target":"深圳流失用户","action":"应对深圳通乘车立减 2 元活动","expected_lift":"12%","priority":"高","dap_cost":65,"activities":[{"name":"连续乘车返现","type":"返现活动","budget":"300,000 元"},{"name":"周卡限时特惠","type":"限时券","budget":"150,000 元"},{"name":"老用户专享福利","type":"会员活动","budget":"100,000 元"}],"channels":[{"name":"短信","ratio":"40%","timing":"立即启动"},{"name":"APP 推送","ratio":"35%","timing":"每日 2 次"},{"name":"抖音广告投流","ratio":"25%","timing":"早晚高峰"}],"materials":[{"name":"返现活动海报","type":"图片","spec":"750x1334 PNG"},{"name":"竞对应对文案","type":"文案","spec":"60 字以内"},{"name":"老用户关怀视频","type":"视频","spec":"25 秒 MP4"}]},{"category":"数据异动","name":"武汉核销率挽回","target":"武汉短途出行用户","action":"应对美团单车免费券冲击","expected_lift":"18%","priority":"高","dap_cost":58,"activities":[{"name":"地铁 + 单车联券","type":"联乘券","budget":"150,000 元"},{"name":"3 公里内特惠","type":"场景券","budget":"100,000 元"},{"name":"接驳换乘优惠","type":"换乘券","budget":"80,000 元"}],"channels":[{"name":"APP 推送","ratio":"45%","timing":"出行前"},{"name":"短信","ratio":"35%","timing":"周末"},{"name":"单车 APP 合作","ratio":"20%","timing":"解锁后"}],"materials":[{"name":"联乘优惠海报","type":"图片","spec":"750x1334 PNG"},{"name":"接驳指引图","type":"图片","spec":"1080x1920 PNG"},{"name":"使用教程视频","type":"视频","spec":"30 秒 MP4"}]},{"category":"策略效能","name":"周末推送优化","target":"周末出行用户","action":"优化文案和发送时段提升 CTR 至 25%","expected_lift":"10%","priority":"中","dap_cost":35,"activities":[{"name":"A/B 测试优化","type":"优化实验","budget":"30,000 元"},{"name":"文案激励升级","type":"文案优化","budget":"20,000 元"},{"name":"时段优化测试","type":"策略调整","budget":"10,000 元"}],"channels":[{"name":"短信","ratio":"60%","timing":"周五 14:00"},{"name":"APP 推送","ratio":"40%","timing":"周五 15:00"}],"materials":[{"name":"A/B 测试文案组","type":"文案","spec":"5 组 variant"},{"name":"激励海报新版","type":"图片","spec":"750x1334 PNG"}]},{"category":"策略效能","name":"召回策略升级","target":"流失风险用户","action":"提升券面额和触达频次提升 CVR 至 12%","expected_lift":"15%","priority":"高","dap_cost":70,"activities":[{"name":"5 元召回券","type":"大额券","budget":"200,000 元"},{"name":"每周 2 次触达","type":"频次调整","budget":"50,000 元"},{"name":"个性化文案","type":"文案优化","budget":"30,000 元"}],"channels":[{"name":"APP 推送","ratio":"50%","timing":"周一/周四 20:00"},{"name":"短信","ratio":"50%","timing":"周二/周五 10:00"}],"materials":[{"name":"大额券海报","type":"图片","spec":"750x1334 PNG"},{"name":"个性化文案库","type":"文案","spec":"10 组 variant"},{"name":"召回视频","type":"视频","spec":"20 秒 MP4"}]}];
+        const userTypes = [{type:'核心通勤族', definition:'工作日固定乘车 2 次/天以上，出行规律稳定', features:'工作日早晚高峰出行 | 固定线路和站点 | 月乘车 20 次+ | 支付方式稳定', strategy:'周卡/月卡推荐，到期提醒，积分奖励', color:'#667eea'},{type:'偶尔出行', definition:'月乘车次数≤5 次，出行时间分散无明显规律', features:'出行频次低 | 时间地点分散 | 多为临时出行 | 价格敏感', strategy:'场景化优惠券，出行建议推送，联券推荐', color:'#67c23a'},{type:'周末出行', definition:'出行集中在周六日，工作日几乎无出行记录', features:'周末出行占比 80%+ | 休闲购物场景 | 出行距离较长 | 结伴出行', strategy:'周末特惠券，活动推荐，商圈联券', color:'#e6a23c'},{type:'流失风险', definition:'历史活跃但过去 7 天无乘车记录，有流失迹象', features:'过去活跃度高 | 近期突然下降 | 可能有替代方案 | 需及时干预', strategy:'大额召回券，个性化文案，多渠道触达', color:'#f56c6c'},{type:'已流失', definition:'过去 30 天无任何乘车记录的历史用户', features:'长期未使用 | 可能已转向竞品 | 召回成本高 | 需强激励', strategy:'超大额券，新用户待遇，专属客服', color:'#909399'}];
+        const userTypeCounts = [489, 819, 302, 251, 139];
+        const marketOpportunities = [{event:'周杰伦演唱会（杭州站）', date:'2026-03-15', location:'杭州奥体中心', crowd:'50,000 人', opportunity:'演唱会前后 3 天地铁客流预计 +35%', suggestion:'推出演唱会专属交通券包，联合场馆周边商圈'},{event:'上海国际车展', date:'2026-03-20', location:'上海国家会展中心', crowd:'200,000 人', opportunity:'展会期间 2 号线/17 号线客流预计 +50%', suggestion:'展会专线优惠 + 参展商合作发券'},{event:'北京草莓音乐节', date:'2026-03-28', location:'北京通州运河公园', crowd:'80,000 人', opportunity:'音乐节期间地铁客流预计 +40%', suggestion:'音乐节联名交通卡 + 现场扫码乘车优惠'},{event:'广州广交会', date:'2026-04-15', location:'广州琶洲会展中心', crowd:'150,000 人', opportunity:'展会期间 8 号线客流预计 +45%', suggestion:'商务出行套餐 + 酒店交通联券'}];
+        const businessSpace = [{city:'杭州', metric:'乘车码渗透率', current:'42%', benchmark:'上海 58%', gap:'-16%', potential:'预计可拉新 120,000 用户', priority:'高', category:'城市拉新短板'},{city:'广州', metric:'月活用户占比', current:'35%', benchmark:'深圳 48%', gap:'-13%', potential:'预计可拉新 85,000 用户', priority:'高', category:'城市拉新短板'},{city:'北京', metric:'NFC 支付使用率', current:'28%', benchmark:'上海 42%', gap:'-14%', potential:'预计可拉新 95,000 用户', priority:'中', category:'城市拉新短板'},{city:'成都', metric:'周卡购买率', current:'15%', benchmark:'杭州 25%', gap:'-10%', potential:'预计可拉新 45,000 用户', priority:'中', category:'城市拉新短板'},{city:'上海', metric:'闸机具动效率', current:'68%', benchmark:'东京 92%', gap:'-24%', potential:'早高峰排队时长增加 8 分钟', priority:'高', category:'机具动效率低'},{city:'深圳', metric:'闸机故障率', current:'3.2%', benchmark:'香港 1.5%', gap:'+1.7%', potential:'日均影响 15,000 人次通行', priority:'高', category:'机具动效率低'}];
+        const dataAnomalies = [{city:'深圳', metric:'日活用户', change:'-12%', period:'近 7 天', cause:'深圳通推出乘车立减 2 元活动', impact:'日均流失约 8,000 用户', suggestion:'紧急启动应对策略，推出连续乘车返现活动', category:'竞对活动影响'},{city:'武汉', metric:'核销率', change:'-18%', period:'近 14 天', cause:'美团单车发放免费骑行券', impact:'短途出行用户流失明显', suggestion:'推出地铁 + 单车联乘优惠，加强接驳场景', category:'竞对活动影响'},{city:'南京', metric:'新用户注册', change:'-25%', period:'近 30 天', cause:'支付宝本地生活补贴减少', impact:'拉新成本上升 40%', suggestion:'联合本地商圈推出新人礼包，降低获客成本', category:'竞对活动影响'},{city:'北京', metric:'出行量', change:'+85%', period:'暴雨红色预警期间', cause:'暴雨红色预警，地面交通瘫痪', impact:'地铁客流激增，部分站点限流', suggestion:'启动大客流应急预案，增加运力投放', category:'天气影响'},{city:'上海', metric:'延误率', change:'+40%', period:'台风过境期间', cause:'台风蓝色预警，部分线路停运', impact:'乘客滞留，投诉量上升', suggestion:'提前发布出行提示，协调公交接驳', category:'天气影响'}];
+        const strategyEfficiency = [{strategy:'周末出行券推送', channel:'短信', ctr:'18%', cvr:'8%', benchmark:'25%/15%', issue:'文案吸引力不足，发送时段偏晚', optimization:'优化文案加入金额激励，发送时间调整为周五 14:00', category:'流量效率优化'},{strategy:'流失用户召回', channel:'APP 推送', ctr:'22%', cvr:'6%', benchmark:'30%/12%', issue:'券面额偏低，触达频次不足', optimization:'提升券面额至 5 元，增加触达频次至每周 2 次', category:'流量效率优化'},{strategy:'通勤族周卡推荐', channel:'抖音广告投流', ctr:'35%', cvr:'10%', benchmark:'40%/18%', issue:'落地页转化路径过长', optimization:'简化购买流程，增加一键购买按钮', category:'流量效率优化'},{strategy:'演唱会活动投放', channel:'抖音广告投流', roi:'1:2.5', benchmark:'1:4.0', issue:'CPM 成本偏高，定向过于宽泛', optimization:'缩小定向范围至演唱会兴趣人群，优化创意素材', category:'预算效率优化'},{strategy:'车展专线广告', channel:'展会现场广告', roi:'1:3.0', benchmark:'1:5.0', issue:'展位位置偏僻，曝光量不足', optimization:'调整至主入口位置，增加互动装置吸引客流', category:'预算效率优化'},{strategy:'新人礼包补贴', channel:'多渠道', costPerAcquisition:'45 元', benchmark:'30 元', issue:'补贴面额过高，转化率偏低', optimization:'分层补贴策略，高潜力用户高补贴，普通用户低补贴', category:'预算效率优化'}];
+        const channelNames = ['APP 推送', '短信', '抖音广告投流', '手机厂商'];
+        const channelSent = [2530, 2625, 2597, 2596];
+        const channelClicked = [1140, 1180, 1170, 1168];
+        const channelConverted = [565, 585, 580, 578];
+        const trendData = [["2025-12-01",1250],["2025-12-02",1180],["2025-12-03",1320],["2025-12-04",1290],["2025-12-05",1150],["2025-12-06",890],["2025-12-07",920],["2025-12-08",1280],["2025-12-09",1310],["2025-12-10",1295],["2025-12-11",1270],["2025-12-12",1100],["2025-12-13",850],["2025-12-14",880],["2025-12-15",1320],["2025-12-16",1350],["2025-12-17",1310],["2025-12-18",1290],["2025-12-19",1080],["2025-12-20",820],["2025-12-21",860],["2025-12-22",1340],["2025-12-23",1380],["2025-12-24",1350],["2025-12-25",1200],["2025-12-26",950],["2025-12-27",780],["2025-12-28",810],["2025-12-29",1360],["2025-12-30",1390]];
+        function showTab(tabId) { document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active')); document.querySelectorAll('.tab').forEach(el => el.classList.remove('active')); document.getElementById(tabId).classList.add('active'); event.target.classList.add('active'); }
+        function toggleExecution(panelId) { const panel = document.getElementById(panelId); const isActive = panel.classList.contains('active'); document.querySelectorAll('.execution-panel').forEach(p => p.classList.remove('active')); if (!isActive) panel.classList.add('active'); }
+        function adoptStrategy(btn, name) { if (btn.classList.contains('adopted')) { btn.classList.remove('adopted'); btn.innerHTML = '采纳'; btn.style.background = '#67c23a'; } else { btn.classList.add('adopted'); btn.innerHTML = '✓ 已采纳'; btn.style.background = '#55a82e'; } }
+        let currentFilter = 'all';
+        function filterStrategies(category) { currentFilter = category; document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active')); event.target.classList.add('active'); renderStrategies(); }
+        function renderStrategies() { const tbody = document.getElementById('strategyTableBody'); const filtered = currentFilter === 'all' ? strategies : strategies.filter(s => s.category === currentFilter); let html = ''; filtered.forEach((s, i) => { const priorityClass = s.priority === '高' ? 'priority-high' : 'priority-medium'; const catBadge = s.category === '人群策略' ? '👥' : s.category === '市场机会' ? '🔥' : s.category === '业务空间' ? '📍' : s.category === '数据异动' ? '⚠️' : '⚡'; html += '<tr class="strategy-row" onclick="toggleExecution(\'exec-'+i+'\')"><td>'+s.name+'</td><td>'+catBadge+' '+s.category+'</td><td>'+s.target+'</td><td>'+s.action+'</td><td class="lift">+'+s.expected_lift+'</td><td class="dap-cost">¥'+s.dap_cost+'</td><td class="'+priorityClass+'">'+s.priority+'</td><td><button class="view-btn" onclick="event.stopPropagation(); toggleExecution(\'exec-'+i+'\')">查看详情</button><button class="adopt-btn" onclick="event.stopPropagation(); adoptStrategy(this, \''+s.name+'\')">采纳</button></td></tr>'; let activitiesHtml = s.activities.map(a => '<div class="execution-item"><div><span class="tag">'+a.type+'</span>'+a.name+'</div><div class="label">预算：'+a.budget+'</div></div>').join(''); let channelsHtml = s.channels.map(c => '<div class="execution-item"><div>'+c.name+' <span class="label">('+c.ratio+')</span></div><div class="label">时机：'+c.timing+'</div></div>').join(''); let materialsHtml = s.materials.map(m => '<div class="execution-item"><div><span class="tag">'+m.type+'</span>'+m.name+'</div><div class="label">'+m.spec+'</div></div>').join(''); html += '<tr><td colspan="8" style="padding: 0;"><div id="exec-'+i+'" class="execution-panel"><span class="close-panel" onclick="toggleExecution(\'exec-'+i+'\')">&times;</span><h4 style="color: #667eea; margin-bottom: 15px;">📋 '+s.name+' - 执行方案</h4><div class="execution-grid"><div class="execution-section"><h4>🎪 投放活动</h4>'+activitiesHtml+'</div><div class="execution-section"><h4>📢 投放渠道</h4>'+channelsHtml+'</div><div class="execution-section"><h4>🎨 投放素材</h4>'+materialsHtml+'</div></div></div></td></tr>'; }); tbody.innerHTML = html; }
+        function renderInsights() { let moHtml = '<div class="grid">'; marketOpportunities.forEach(m => { moHtml += '<div class="insight-card high"><h4>🎤 '+m.event+'</h4><div class="detail">📅 日期：'+m.date+' | 📍 地点：'+m.location+' | 👥 预计人流：'+m.crowd+'</div><div class="detail">📈 机会：'+m.opportunity+'</div><div class="suggestion">💡 建议：'+m.suggestion+'</div></div>'; }); moHtml += '</div>'; document.getElementById('marketOpportunities').innerHTML = moHtml; let bsHtml = '<table><thead><tr><th>城市</th><th>分类</th><th>指标</th><th>当前值</th><th>对标城市</th><th>差距</th><th>影响/空间</th><th>优先级</th></tr></thead><tbody>'; businessSpace.forEach(b => { const pClass = b.priority === '高' ? 'priority-high' : 'priority-medium'; const catBadge = b.category === '城市拉新短板' ? '📍' : '⚡'; bsHtml += '<tr><td>'+b.city+'</td><td>'+catBadge+' '+b.category+'</td><td>'+b.metric+'</td><td>'+b.current+'</td><td>'+b.benchmark+'</td><td style="color:#f56c6c">'+b.gap+'</td><td>'+b.potential+'</td><td class="'+pClass+'">'+b.priority+'</td></tr>'; }); bsHtml += '</tbody></table>'; document.getElementById('businessSpace').innerHTML = bsHtml; let daHtml = ''; dataAnomalies.forEach(d => { const catBadge = d.category === '竞对活动影响' ? '🔴' : '🌧️'; const changeText = d.category === '天气影响' ? (d.change.indexOf('+')>=0 ? '激增 '+d.change : '下跌 '+d.change) : '下跌 '+d.change; daHtml += '<div class="insight-card high"><h4>'+catBadge+' '+d.category+' | '+d.city+' - '+d.metric+' '+changeText+'</h4><div class="detail">📉 周期：'+d.period+' | 🔍 原因：'+d.cause+'</div><div class="detail">💥 影响：'+d.impact+'</div><div class="suggestion">💡 建议：'+d.suggestion+'</div></div>'; }); document.getElementById('dataAnomalies').innerHTML = daHtml; let seHtml = '<table><thead><tr><th>策略</th><th>分类</th><th>渠道</th><th>指标</th><th>基准</th><th>问题</th><th>优化建议</th></tr></thead><tbody>'; strategyEfficiency.forEach(s => { const catBadge = s.category === '流量效率优化' ? '⚡' : '💰'; let metricHtml = ''; if(s.category === '流量效率优化') { metricHtml = 'CTR:'+s.ctr+' | CVR:'+s.cvr; } else { metricHtml = 'ROI:'+s.roi+' | CPA:'+s.costPerAcquisition; } seHtml += '<tr><td>'+s.strategy+'</td><td>'+catBadge+' '+s.category+'</td><td>'+s.channel+'</td><td>'+metricHtml+'</td><td>'+s.benchmark+'</td><td>'+s.issue+'</td><td style="color:#67c23a">'+s.optimization+'</td></tr>'; }); seHtml += '</tbody></table>'; document.getElementById('strategyEfficiency').innerHTML = seHtml; }
+        function renderUserTypes() { let html = ''; userTypes.forEach(ut => { html += '<div class="user-type-card" style="border-left-color: '+ut.color+';"><h4><span class="badge" style="background: '+ut.color+';">'+ut.type+'</span></h4><p class="def"><strong>定义：</strong>'+ut.definition+'</p><p class="features"><strong>特征：</strong>'+ut.features+'</p><p class="strategy"><strong>运营策略：</strong>'+ut.strategy+'</p></div>'; }); document.getElementById('userTypeDefinitions').innerHTML = html; let statsHtml = ''; userTypes.forEach((ut, i) => { const pct = (userTypeCounts[i] / 2000 * 100).toFixed(1); statsHtml += '<tr><td>'+ut.type+'</td><td>'+userTypeCounts[i].toLocaleString()+'</td><td>'+pct+'%</td></tr>'; }); document.getElementById('segmentStats').innerHTML = statsHtml; }
+        document.getElementById('genTime').textContent = new Date().toLocaleString('zh-CN', {hour12:false});
+        renderStrategies(); renderInsights(); renderUserTypes();
+        new Chart(document.getElementById('userTypeChart'), { type: 'doughnut', data: { labels: userTypes.map(u=>u.type), datasets: [{ data: userTypeCounts, backgroundColor: ['#667eea', '#67c23a', '#e6a23c', '#f56c6c', '#909399'] }] }, options: { responsive: true, maintainAspectRatio: false } });
+        new Chart(document.getElementById('segmentDistChart'), { type: 'bar', data: { labels: userTypes.map(u=>u.type), datasets: [{ label: '用户数', data: userTypeCounts, backgroundColor: ['#667eea', '#67c23a', '#e6a23c', '#f56c6c', '#909399'] }] }, options: { responsive: true, maintainAspectRatio: false } });
+        new Chart(document.getElementById('channelChart'), { type: 'bar', data: { labels: channelNames, datasets: [{ label: '发送数', data: channelSent, backgroundColor: '#667eea' }, { label: '点击数', data: channelClicked, backgroundColor: '#67c23a' }, { label: '转化数', data: channelConverted, backgroundColor: '#e6a23c' }] }, options: { responsive: true, maintainAspectRatio: false } });
+        new Chart(document.getElementById('trendChart'), { type: 'line', data: { labels: trendData.map(d => d[0]), datasets: [{ label: '出行人次', data: trendData.map(d => d[1]), borderColor: '#667eea', backgroundColor: 'rgba(102, 126, 234, 0.1)', fill: true, tension: 0.4 }] }, options: { responsive: true, maintainAspectRatio: false } });
+    </script>
+</body>
+</html>

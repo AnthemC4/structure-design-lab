@@ -1007,12 +1007,15 @@
                         newPosition.copy(clickedStraw.position).add(endPoint);
                     }
                     
-                    // 根据新吸管的方向调整位置
+                    // 根据新吸管的方向调整位置（让连接点重叠）
                     if (currentStrawDirection === 'vertical') {
+                        // 垂直吸管：中心点向上偏移一半长度，使底部在端点处
                         newPosition.y += STRAW_LENGTH / 2;
                     } else if (currentStrawDirection === 'diagonal') {
-                        newPosition.y += STRAW_LENGTH / 2;
-                        newPosition.x += STRAW_LENGTH / 3;
+                        // 斜向吸管：沿 45 度方向偏移，使下端在端点处
+                        const diagOffset = (STRAW_LENGTH / 2) * Math.sqrt(2) / 2;
+                        newPosition.y += diagOffset;
+                        newPosition.x -= diagOffset;
                     }
                     
                     // 限制在网格范围内
@@ -1056,12 +1059,16 @@
                         intersection.x = Math.max(-GRID_SIZE/2 + 1, Math.min(GRID_SIZE/2 - 1, intersection.x));
                         intersection.z = Math.max(-GRID_SIZE/2 + 1, Math.min(GRID_SIZE/2 - 1, intersection.z));
                         
-                        // 根据方向设置高度
+                        // 根据方向设置高度（确保底部在地面上）
                         if (currentStrawDirection === 'vertical') {
+                            // 垂直吸管：中心点在 STRAW_LENGTH/2 处，底部在 y=0
                             intersection.y = STRAW_LENGTH / 2;
                         } else if (currentStrawDirection === 'diagonal') {
-                            intersection.y = STRAW_LENGTH / 3;
+                            // 斜向吸管：45 度角，下端在地面
+                            const diagOffset = (STRAW_LENGTH / 2) * Math.sqrt(2) / 2;
+                            intersection.y = diagOffset;
                         } else {
+                            // 水平吸管：中心点在 STRAW_RADIUS 处
                             intersection.y = STRAW_RADIUS;
                         }
                         

@@ -682,10 +682,12 @@
         let dragOffset = new THREE.Vector3();
         let dragTouchId = null; // 拖拽吸管的触摸 ID
         
-        // 自动吸附相关
-        const SNAP_THRESHOLD = 0.3; // 吸附阈值（单位）
-        let snapTarget = null; // 当前吸附的目标点
-        let snapHighlight = null; // 吸附高亮标记
+        // 智能校准相关
+        const SNAP_THRESHOLD = 0.5; // 校准阈值（单位，约球体直径）
+        const SNAP_STRENGTH = 0.3; // 校准力度（0-1，越大吸附越强）
+        let snapTarget = null; // 当前校准的目标点
+        let snapHighlight = null; // 校准高亮标记
+        let isSnapped = false; // 当前是否处于校准状态
         
         // 吸管方向
         let currentStrawDirection = 'horizontal'; // horizontal, vertical, diagonal
@@ -951,91 +953,83 @@
             scene.add(snapHighlight);
         }
         
-        // 检测并更新吸附
+        // 获取吸管两端连接点（球体中心）的世界坐标
+        function getStrawJointPositions(straw) {
+            const direction = straw.userData.direction || 'horizontal';
+            const halfLen = direction === 'diagonal' ? STRAW_DIAGONAL_BODY_LENGTH / 2 : STRAW_LENGTH / 2;
+            const rotationY = straw.rotation.y;
+            const joints = [];
+            
+            if (direction === 'horizontal') {
+                const cosR = Math.cos(rotationY);
+                const sinR = Math.sin(rotationY);
+                joints.push(
+                    new THREE.Vector3(straw.position.x - halfLen * cosR, straw.position.y, straw.position.z - halfLen * sinR),
+                    new THREE.Vector3(straw.position.x + halfLen * cosR, straw.position.y, straw.position.z + halfLen * sinR)
+                );
+            } else if (direction === 'vertical') {
+                joints.push(
+                    new THREE.Vector3(straw.position.x, straw.position.y - halfLen, straw.position.z),
+                    new THREE.Vector3(straw.position.x, straw.position.y + halfLen, straw.position.z)
+                );
+            } else if (direction === 'diagonal') {
+                const sin45 = Math.sqrt(2) / 2;
+                const cos45 = Math.sqrt(2) / 2;
+                const cosR = Math.cos(rotationY);
+                const sinR = Math.sin(rotationY);
+                const j1x = -halfLen * sin45;
+                const j1y = -halfLen * cos45;
+                const j2x = halfLen * sin45;
+                const j2y = halfLen * cos45;
+                joints.push(
+                    new THREE.Vector3(straw.position.x + j1x * cosR, straw.position.y + j1y, straw.position.z + j1x * sinR),
+                    new THREE.Vector3(straw.position.x + j2x * cosR, straw.position.y + j2y, straw.position.z + j2x * sinR)
+                );
+            }
+            
+            return joints;
+        }
+        
+        // 检测并更新智能校准
         function updateSnap(position) {
             if (!selectedStraw) return null;
             
-            // 获取所有吸管的连接点位置（世界坐标）
-            const jointPositions = [];
+            // 获取选中吸管的所有连接点（球体中心）
+            const selectedJoints = getStrawJointPositions(selectedStraw);
+            
+            // 获取所有其他吸管的连接点
+            const allJoints = [];
             straws.forEach(straw => {
-                if (straw === selectedStraw) return; // 跳过当前选中的吸管
-                
-                const direction = straw.userData.direction || 'horizontal';
-                const halfLen = direction === 'diagonal' ? STRAW_DIAGONAL_BODY_LENGTH / 2 : STRAW_LENGTH / 2;
-                const rotationY = straw.rotation.y; // 吸管的 Y 轴旋转
-                
-                // 根据方向计算连接点的世界坐标（考虑 rotation.y）
-                if (direction === 'horizontal') {
-                    // 水平吸管：连接点沿旋转后的 X 轴方向
-                    const cosR = Math.cos(rotationY);
-                    const sinR = Math.sin(rotationY);
-                    jointPositions.push(
-                        new THREE.Vector3(
-                            straw.position.x - halfLen * cosR,
-                            straw.position.y,
-                            straw.position.z - halfLen * sinR
-                        ),
-                        new THREE.Vector3(
-                            straw.position.x + halfLen * cosR,
-                            straw.position.y,
-                            straw.position.z + halfLen * sinR
-                        )
-                    );
-                } else if (direction === 'vertical') {
-                    // 垂直吸管：连接点在 Y 轴方向（不受 rotation.y 影响）
-                    jointPositions.push(
-                        new THREE.Vector3(straw.position.x, straw.position.y - halfLen, straw.position.z),
-                        new THREE.Vector3(straw.position.x, straw.position.y + halfLen, straw.position.z)
-                    );
-                } else if (direction === 'diagonal') {
-                    // 斜向吸管：连接点在 45 度方向（考虑 rotation.y）
-                    const sin45 = Math.sqrt(2) / 2;
-                    const cos45 = Math.sqrt(2) / 2;
-                    const cosR = Math.cos(rotationY);
-                    const sinR = Math.sin(rotationY);
-                    
-                    // 45 度方向的局部坐标
-                    const j1x = -halfLen * sin45;
-                    const j1y = -halfLen * cos45;
-                    const j2x = halfLen * sin45;
-                    const j2y = halfLen * cos45;
-                    
-                    // 应用 Y 轴旋转
-                    jointPositions.push(
-                        new THREE.Vector3(
-                            straw.position.x + j1x * cosR,
-                            straw.position.y + j1y,
-                            straw.position.z + j1x * sinR
-                        ),
-                        new THREE.Vector3(
-                            straw.position.x + j2x * cosR,
-                            straw.position.y + j2y,
-                            straw.position.z + j2x * sinR
-                        )
-                    );
-                }
+                if (straw === selectedStraw) return;
+                const joints = getStrawJointPositions(straw);
+                allJoints.push(...joints);
             });
             
-            // 找到最近的连接点
+            // 找到最近的连接点对（球体中心对球体中心）
             let nearestPoint = null;
             let nearestDist = SNAP_THRESHOLD;
             
-            jointPositions.forEach(point => {
-                const dist = position.distanceTo(point);
-                if (dist < nearestDist) {
-                    nearestDist = dist;
-                    nearestPoint = point;
-                }
+            selectedJoints.forEach(selectedJoint => {
+                allJoints.forEach(targetJoint => {
+                    const dist = selectedJoint.distanceTo(targetJoint);
+                    if (dist < nearestDist) {
+                        nearestDist = dist;
+                        nearestPoint = targetJoint;
+                    }
+                });
             });
             
             // 更新吸附状态
             snapTarget = nearestPoint;
+            isSnapped = (nearestPoint !== null && nearestDist < SNAP_THRESHOLD * 0.5);
             
             // 更新高亮位置
             if (snapHighlight) {
                 if (nearestPoint) {
                     snapHighlight.position.copy(nearestPoint);
                     snapHighlight.visible = true;
+                    // 校准成功时变亮
+                    snapHighlight.material.opacity = isSnapped ? 1 : 0.5;
                 } else {
                     snapHighlight.visible = false;
                 }
@@ -1348,11 +1342,14 @@
                             dragOffset.copy(intersection);
                         }
                         
-                        // 检测并应用自动吸附
+                        // 检测并应用智能校准（软性，可继续拖动）
                         const snapPoint = updateSnap(selectedStraw.position);
-                        if (snapPoint) {
-                            // 吸附到连接点
-                            selectedStraw.position.copy(snapPoint);
+                        if (snapPoint && isSnapped) {
+                            // 校准模式：轻微拉向目标点，但允许继续拖动
+                            const currentPos = selectedStraw.position.clone();
+                            const direction = snapPoint.clone().sub(currentPos).normalize();
+                            const pullStrength = SNAP_STRENGTH;
+                            selectedStraw.position.add(direction.multiplyScalar(pullStrength));
                         }
                         
                         // 限制在网格范围内
@@ -1404,10 +1401,14 @@
                 dragOffset.copy(intersection);
             }
             
-            // 检测并应用自动吸附
+            // 检测并应用智能校准（软性，可继续拖动）
             const snapPoint = updateSnap(selectedStraw.position);
-            if (snapPoint) {
-                selectedStraw.position.copy(snapPoint);
+            if (snapPoint && isSnapped) {
+                // 校准模式：轻微拉向目标点，但允许继续拖动
+                const currentPos = selectedStraw.position.clone();
+                const direction = snapPoint.clone().sub(currentPos).normalize();
+                const pullStrength = SNAP_STRENGTH;
+                selectedStraw.position.add(direction.multiplyScalar(pullStrength));
             }
             
             // 限制在网格范围内

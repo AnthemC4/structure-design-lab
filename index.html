@@ -962,34 +962,55 @@
                 
                 const direction = straw.userData.direction || 'horizontal';
                 const halfLen = direction === 'diagonal' ? STRAW_DIAGONAL_BODY_LENGTH / 2 : STRAW_LENGTH / 2;
+                const rotationY = straw.rotation.y; // 吸管的 Y 轴旋转
                 
-                // 根据方向计算连接点的世界坐标
+                // 根据方向计算连接点的世界坐标（考虑 rotation.y）
                 if (direction === 'horizontal') {
-                    // 水平吸管：连接点在 X 轴方向
+                    // 水平吸管：连接点沿旋转后的 X 轴方向
+                    const cosR = Math.cos(rotationY);
+                    const sinR = Math.sin(rotationY);
                     jointPositions.push(
-                        new THREE.Vector3(straw.position.x - halfLen, straw.position.y, straw.position.z),
-                        new THREE.Vector3(straw.position.x + halfLen, straw.position.y, straw.position.z)
+                        new THREE.Vector3(
+                            straw.position.x - halfLen * cosR,
+                            straw.position.y,
+                            straw.position.z - halfLen * sinR
+                        ),
+                        new THREE.Vector3(
+                            straw.position.x + halfLen * cosR,
+                            straw.position.y,
+                            straw.position.z + halfLen * sinR
+                        )
                     );
                 } else if (direction === 'vertical') {
-                    // 垂直吸管：连接点在 Y 轴方向
+                    // 垂直吸管：连接点在 Y 轴方向（不受 rotation.y 影响）
                     jointPositions.push(
                         new THREE.Vector3(straw.position.x, straw.position.y - halfLen, straw.position.z),
                         new THREE.Vector3(straw.position.x, straw.position.y + halfLen, straw.position.z)
                     );
                 } else if (direction === 'diagonal') {
-                    // 斜向吸管：连接点在 45 度方向
+                    // 斜向吸管：连接点在 45 度方向（考虑 rotation.y）
                     const sin45 = Math.sqrt(2) / 2;
                     const cos45 = Math.sqrt(2) / 2;
+                    const cosR = Math.cos(rotationY);
+                    const sinR = Math.sin(rotationY);
+                    
+                    // 45 度方向的局部坐标
+                    const j1x = -halfLen * sin45;
+                    const j1y = -halfLen * cos45;
+                    const j2x = halfLen * sin45;
+                    const j2y = halfLen * cos45;
+                    
+                    // 应用 Y 轴旋转
                     jointPositions.push(
                         new THREE.Vector3(
-                            straw.position.x - halfLen * sin45,
-                            straw.position.y - halfLen * cos45,
-                            straw.position.z
+                            straw.position.x + j1x * cosR,
+                            straw.position.y + j1y,
+                            straw.position.z + j1x * sinR
                         ),
                         new THREE.Vector3(
-                            straw.position.x + halfLen * sin45,
-                            straw.position.y + halfLen * cos45,
-                            straw.position.z
+                            straw.position.x + j2x * cosR,
+                            straw.position.y + j2y,
+                            straw.position.z + j2x * sinR
                         )
                     );
                 }
@@ -1574,10 +1595,11 @@
                     }
                 }
                 
-                // 保存设计数据
+                // 保存设计数据（包含方向信息）
                 const designData = straws.map(straw => ({
                     position: { x: straw.position.x, y: straw.position.y, z: straw.position.z },
-                    rotation: { x: straw.rotation.x, y: straw.rotation.y, z: straw.rotation.z }
+                    rotation: { x: straw.rotation.x, y: straw.rotation.y, z: straw.rotation.z },
+                    direction: straw.userData.direction || 'horizontal'
                 }));
                 
                 designs[saveIndex] = designData;
@@ -1613,28 +1635,22 @@
         }
         
         function loadDesign(index) {
-            // 目标方案为空：直接切换，不做提示
+            deselectStraw();
+            
+            // 目标方案为空：不清空当前内容，只是切换当前方案索引，用户可以继续编辑
             if (!designs[index]) {
-                // 如果有当前设计，提示会丢失
+                // 如果有未保存的内容，提示用户
                 if (straws.length > 0) {
-                    if (!confirm('切换方案后，当前未保存的设计将会丢失。\n\n确定要切换到空方案吗？')) {
-                        return;
-                    }
+                    showMessage('ℹ️', `已切换到方案 ${index + 1}（空）\n\n当前设计未保存，请记得先保存再切换其他方案`);
+                } else {
+                    showMessage('✅', `已切换到方案 ${index + 1}（空）`);
                 }
-                // 清空当前设计
-                straws.forEach(straw => scene.remove(straw));
-                straws = [];
-                remainingStraws = 20;
-                updateCountDisplay();
                 currentDesignIndex = index;
                 updateDesignsUI();
-                showMessage('✅', `已切换到方案 ${index + 1}（空）`);
                 return;
             }
             
-            // 目标方案有内容：确认是否切换
-            deselectStraw();
-            
+            // 目标方案有内容：确认是否切换（切换会清空当前未保存的内容）
             if (straws.length > 0) {
                 if (!confirm('切换方案将清空当前未保存的设计，确定继续吗？\n\n当前设计需要先保存，否则会丢失。')) {
                     return;
@@ -1645,12 +1661,17 @@
             straws.forEach(straw => scene.remove(straw));
             straws = [];
             
-            // 加载新设计
+            // 加载已保存的设计
             designs[index].forEach(data => {
                 const straw = createStraw(
                     new THREE.Vector3(data.position.x, data.position.y, data.position.z),
-                    new THREE.Euler(data.rotation.x, data.rotation.y, data.rotation.z)
+                    data.direction || 'horizontal',
+                    data.rotation.y
                 );
+                // 恢复完整的旋转信息
+                straw.rotation.x = data.rotation.x;
+                straw.rotation.y = data.rotation.y;
+                straw.rotation.z = data.rotation.z;
                 scene.add(straw);
                 straws.push(straw);
             });

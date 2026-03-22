@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>结构与设计 - 吸管搭建实验室 v20260322-4 最终修复版</title>
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js?v=20260322"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js?v=20260322"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Arial', sans-serif;
+            overflow: hidden;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            touch-action: none;
+        }
+        
+        #container {
+            width: 100vw;
+            height: 100vh;
+            position: relative;
+        }
+        
+        #canvas-container {
+            width: 100%;
+            height: 100%;
+        }
+        
+        /* 顶部信息栏 */
+        #info-bar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            background: rgba(255, 255, 255, 0.95);
+            padding: 12px 20px;
+            padding-top: max(12px, env(safe-area-inset-top));
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            z-index: 1000;
+            -webkit-backdrop-filter: blur(10px);
+            backdrop-filter: blur(10px);
+        }
+        
+        #material-count {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 20px;
+            font-weight: bold;
+            color: #333;
+        }
+        
+        #straw-icon {
+            width: 40px;
+            height: 40px;
+            background: #4a90e2;
+            border-radius: 5px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        #straw-icon::before {
+            content: '▬';
+            color: white;
+            font-size: 24px;
+        }
+        
+        #count-display {
+            background: #4a90e2;
+            color: white;
+            padding: 8px 20px;
+            border-radius: 20px;
+            min-width: 80px;
+            text-align: center;
+        }
+        
+        #count-display.warning {
+            background: #f5a623;
+            animation: pulse 1s infinite;
+        }
+        
+        #count-display.empty {
+            background: #e74c3c;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+        
+        /* 底部工具栏 */
+        #toolbar {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: rgba(255, 255, 255, 0.95);
+            padding: 12px 15px;
+            padding-bottom: max(12px, env(safe-area-inset-bottom));
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            flex-wrap: wrap;
+            box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
+            z-index: 1000;
+            -webkit-backdrop-filter: blur(10px);
+            backdrop-filter: blur(10px);
+        }
+        
+        .tool-btn {
+            padding: 12px 20px;
+            font-size: 16px;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            white-space: nowrap;
+            -webkit-tap-highlight-color: transparent;
+        }
+        
+        .tool-btn:active {
+            transform: scale(0.95);
+        }
+        
+        /* 方向选择器 */
+        #direction-selector {
+            position: fixed;
+            bottom: 80px;
+            bottom: max(80px, calc(80px + env(safe-area-inset-bottom)));
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(255, 255, 255, 0.95);
+            padding: 10px 15px;
+            border-radius: 15px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.2);
+            z-index: 999;
+            display: none;
+            gap: 10px;
+            -webkit-backdrop-filter: blur(10px);
+            backdrop-filter: blur(10px);
+        }
+        
+        #direction-selector.show {
+            display: flex !important;
+            animation: popIn 0.3s;
+        }
+        
+        .dir-btn {
+            padding: 10px 18px;
+            font-size: 15px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            background: white;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-weight: bold;
+        }
+        
+        .dir-btn:active {
+            transform: scale(0.95);
+        }
+        
+        .dir-btn.active {
+            border-color: #4a90e2;
+            background: #4a90e2;
+            color: white;
+        }
+        
+        #add-straw-btn {
+            background: linear-gradient(135deg, #4a90e2, #357abd);
+            color: white;
+            box-shadow: 0 4px 15px rgba(74, 144, 226, 0.4);
+        }
+        
+        #add-straw-btn.ready {
+            background: linear-gradient(135deg, #2ecc71, #27ae60);
+            animation: glow 1.5s infinite;
+        }
+        
+        @keyframes glow {
+            0%, 100% { box-shadow: 0 4px 15px rgba(46, 204, 113, 0.4); }
+            50% { box-shadow: 0 4px 25px rgba(46, 204, 113, 0.6); }
+        }
+        
+...
+            });
+            
+            rotateRightBtn.addEventListener('click', () => {
+                if (selectedStraw) {
+                    // 保存操作前状态
+                    saveToUndoHistory();
+                    
+                    selectedStraw.rotation.y -= Math.PI / 12;
+                    showMessage('↪️', '向右旋转 15°');
+                }
+            });
+            
+            moveUpBtn.addEventListener('click', () => {
+                if (selectedStraw) {
+                    // 保存操作前状态
+                    saveToUndoHistory();
+                    
+                    selectedStraw.position.y += 0.5;
+                    selectedStraw.position.y = Math.min(GRID_SIZE, selectedStraw.position.y);
+                    showMessage('⬆️', '升高 0.5 单位');
+                }
+            });
+            
+            moveDownBtn.addEventListener('click', () => {
+                if (selectedStraw) {
+                    // 保存操作前状态
+                    saveToUndoHistory();
+                    
+                    selectedStraw.position.y -= 0.5;
+                    selectedStraw.position.y = Math.max(STRAW_RADIUS, selectedStraw.position.y);
+                    showMessage('⬇️', '降低 0.5 单位');
+                }
+            });
+            
+            doneEditBtn.addEventListener('click', () => {
+                deselectStraw();
+                showMessage('✅', '编辑完成');
+            });
+            
+            saveBtn.addEventListener('click', () => {
+                // 保存前先取消选中
+                deselectStraw();
+                
+                if (straws.length === 0) {
+                    showMessage('⚠️', '还没有设计内容\n请先添加吸管');
+                    return;
+                }
+                
+                // 确定保存目标
+                let saveIndex = currentDesignIndex;
+                
+                // 如果当前没有选中任何方案，找第一个空方案
+                if (saveIndex === -1) {
+                    saveIndex = designs.findIndex(d => d === null);
+                }
+                
+                // 如果所有方案都满了，默认保存到第一个
+                if (saveIndex === -1) {
+                    saveIndex = 0;
+                }
+                
+                // 检查目标方案是否已有内容，需要确认覆盖
+                if (designs[saveIndex] !== null) {
+                    if (!confirm(`方案 ${saveIndex + 1} 已有设计内容，确定要覆盖吗？\n\n覆盖后原设计将无法恢复。`)) {
+                        return; // 用户取消覆盖
+                    }
+                }
+                
+                // 保存设计数据（包含方向信息）
+                const designData = straws.map(straw => ({
+                    position: { x: straw.position.x, y: straw.position.y, z: straw.position.z },
+                    rotation: { x: straw.rotation.x, y: straw.rotation.y, z: straw.rotation.z },
+                    direction: straw.userData.direction || 'horizontal'
+                }));
+                
+                designs[saveIndex] = designData;
+                currentDesignIndex = saveIndex; // 更新当前方案
+                
+                // 更新 UI
+                updateDesignsUI();
+                
+                // 显示保存成功
+                const successMsg = document.getElementById('save-success');
+                successMsg.classList.add('show');
+                setTimeout(() => successMsg.classList.remove('show'), 2000);
+                
+                showMessage('💾', `设计已保存到方案 ${saveIndex + 1}`);
+            });
+        }
+        
+        function updateDesignsUI() {
+            const slots = document.querySelectorAll('.design-slot');
+            slots.forEach((slot, index) => {
+                const isActive = (index === currentDesignIndex);
+                
+                if (designs[index]) {
+                    slot.classList.remove('empty');
+                    slot.textContent = `方案 ${index + 1}（${designs[index].length}根）`;
+                    slot.classList.toggle('active', isActive);
+                } else {
+                    slot.classList.add('empty');
+                    slot.textContent = `方案 ${index + 1}（空）`;
+                    slot.classList.toggle('active', isActive);
+                }
+                
+                slot.onclick = () => loadDesign(index);
+            });
+        }
+        
+        function loadDesign(index) {
+            deselectStraw();
+            
+            // 目标方案为空：不清空当前内容，只是切换当前方案索引，用户可以继续编辑
+            if (!designs[index]) {
+                // 如果有未保存的内容，提示用户（延长显示时间到 3 秒）
+                if (straws.length > 0) {
+                    showMessage('ℹ️', `已切换到方案 ${index + 1}（空）\n\n当前设计未保存，请记得先保存再切换其他方案`, 3000);
+                } else {
+                    showMessage('✅', `已切换到方案 ${index + 1}（空）`, 3000);
+                }
+                currentDesignIndex = index;
+                updateDesignsUI();
+                clearUndoHistory(); // 切换方案时清空历史
+                return;
+            }
+            
+            // 目标方案有内容：确认是否切换（切换会清空当前未保存的内容）
+            if (straws.length > 0) {
+                if (!confirm('切换方案将清空当前未保存的设计，确定继续吗？\n\n当前设计需要先保存，否则会丢失。')) {
+                    return;
+                }
+            }
+            
+            // 清空当前设计
+            straws.forEach(straw => scene.remove(straw));
+            straws = [];
+            
+            // 加载已保存的设计
+            designs[index].forEach(data => {
+                const straw = createStraw(
+                    new THREE.Vector3(data.position.x, data.position.y, data.position.z),
+                    data.direction || 'horizontal',
+                    data.rotation.y
+                );
+                // 恢复完整的旋转信息
+                straw.rotation.x = data.rotation.x;
+                straw.rotation.y = data.rotation.y;
+                straw.rotation.z = data.rotation.z;
+                scene.add(straw);
+                straws.push(straw);
+            });
+            
+            remainingStraws = 20 - straws.length;
+            updateCountDisplay();
+            currentDesignIndex = index;
+            updateDesignsUI();
+            clearUndoHistory(); // 切换方案时清空历史
+            
+            showMessage('✅', `已加载方案 ${index + 1}`);
+        }
+        
+        // ========== 消息提示 ==========
+        function showMessage(icon, content, duration = 2000) {
+            const msgDiv = document.getElementById('message');
+            const title = document.getElementById('message-title');
+            const text = document.getElementById('message-content');
+            
+            title.textContent = icon;
+            text.textContent = content;
+            msgDiv.classList.add('show');
+            
+            setTimeout(() => {
+                msgDiv.classList.remove('show');
+            }, duration);
+        }
+        
+        // ========== 窗口大小调整 ==========
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+        
+        // ========== 渲染循环 ==========
+        function animate() {
+            requestAnimationFrame(animate);
+            controls.update();
+            renderer.render(scene, camera);
+        }
+        
+        // ========== 页面加载完成后初始化 ==========
+        window.addEventListener('load', () => {
+            initScene();
+            setupToolbar();
+            showMessage('🎉', '欢迎使用吸管搭建实验室！\n点击"添加吸管"开始设计');
+        });
+    </script>
+</body>
+</html>
+# Trigger rebuild

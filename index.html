@@ -1022,7 +1022,7 @@
         }
         
         // 检测并更新智能校准
-        function updateSnap(position) {
+        function updateSnap() {
             if (!selectedStraw) return null;
             
             // 获取选中吸管的所有连接点（球体中心）
@@ -1037,7 +1037,8 @@
             });
             
             // 找到最近的连接点对（球体中心对球体中心）
-            let nearestPoint = null;
+            let nearestTarget = null;
+            let nearestSelectedJoint = null;
             let nearestDist = SNAP_THRESHOLD;
             
             selectedJoints.forEach(selectedJoint => {
@@ -1045,28 +1046,39 @@
                     const dist = selectedJoint.distanceTo(targetJoint);
                     if (dist < nearestDist) {
                         nearestDist = dist;
-                        nearestPoint = targetJoint;
+                        nearestTarget = targetJoint;
+                        nearestSelectedJoint = selectedJoint;
                     }
                 });
             });
             
             // 更新吸附状态
-            snapTarget = nearestPoint;
-            isSnapped = (nearestPoint !== null && nearestDist < SNAP_THRESHOLD * 0.5);
+            snapTarget = nearestTarget;
+            isSnapped = (nearestTarget !== null && nearestDist < SNAP_THRESHOLD * 0.5);
             
-            // 更新高亮位置
+            // 更新高亮位置（高亮目标连接点）
             if (snapHighlight) {
-                if (nearestPoint) {
-                    snapHighlight.position.copy(nearestPoint);
+                if (nearestTarget) {
+                    snapHighlight.position.copy(nearestTarget);
                     snapHighlight.visible = true;
                     // 校准成功时变亮
-                    snapHighlight.material.opacity = isSnapped ? 1 : 0.5;
+                    snapHighlight.material.opacity = isSnapped ? 1 : 0.3;
                 } else {
                     snapHighlight.visible = false;
                 }
             }
             
-            return nearestPoint;
+            // 返回校准向量（选中吸管需要移动的方向和距离）
+            if (nearestTarget && nearestSelectedJoint) {
+                return {
+                    target: nearestTarget,
+                    currentJoint: nearestSelectedJoint,
+                    distance: nearestDist,
+                    offset: nearestTarget.clone().sub(nearestSelectedJoint)
+                };
+            }
+            
+            return null;
         }
         
         function onCanvasClick(event) {
@@ -1380,13 +1392,12 @@
                         }
                         
                         // 检测并应用智能校准（软性，可继续拖动）
-                        const snapPoint = updateSnap(selectedStraw.position);
-                        if (snapPoint && isSnapped) {
-                            // 校准模式：轻微拉向目标点，但允许继续拖动
-                            const currentPos = selectedStraw.position.clone();
-                            const direction = snapPoint.clone().sub(currentPos).normalize();
-                            const pullStrength = SNAP_STRENGTH;
-                            selectedStraw.position.add(direction.multiplyScalar(pullStrength));
+                        const snapInfo = updateSnap();
+                        if (snapInfo && isSnapped) {
+                            // 校准模式：将选中的连接点拉向目标连接点
+                            // 计算需要移动的偏移量
+                            const moveOffset = snapInfo.offset.clone().multiplyScalar(SNAP_STRENGTH);
+                            selectedStraw.position.add(moveOffset);
                         }
                         
                         // 限制在网格范围内
@@ -1439,13 +1450,11 @@
             }
             
             // 检测并应用智能校准（软性，可继续拖动）
-            const snapPoint = updateSnap(selectedStraw.position);
-            if (snapPoint && isSnapped) {
-                // 校准模式：轻微拉向目标点，但允许继续拖动
-                const currentPos = selectedStraw.position.clone();
-                const direction = snapPoint.clone().sub(currentPos).normalize();
-                const pullStrength = SNAP_STRENGTH;
-                selectedStraw.position.add(direction.multiplyScalar(pullStrength));
+            const snapInfo = updateSnap();
+            if (snapInfo && isSnapped) {
+                // 校准模式：将选中的连接点拉向目标连接点
+                const moveOffset = snapInfo.offset.clone().multiplyScalar(SNAP_STRENGTH);
+                selectedStraw.position.add(moveOffset);
             }
             
             // 限制在网格范围内

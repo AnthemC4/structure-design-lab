@@ -955,27 +955,29 @@
         function updateSnap(position) {
             if (!selectedStraw) return null;
             
-            // 获取所有吸管的连接点位置
+            // 获取所有吸管的连接点位置（世界坐标）
             const jointPositions = [];
             straws.forEach(straw => {
                 if (straw === selectedStraw) return; // 跳过当前选中的吸管
                 
                 const direction = straw.userData.direction || 'horizontal';
-                const halfLen = STRAW_LENGTH / 2;
+                const halfLen = direction === 'diagonal' ? STRAW_DIAGONAL_BODY_LENGTH / 2 : STRAW_LENGTH / 2;
                 
-                // 计算两个连接点的世界坐标
+                // 根据方向计算连接点的世界坐标
                 if (direction === 'horizontal') {
+                    // 水平吸管：连接点在 X 轴方向
                     jointPositions.push(
                         new THREE.Vector3(straw.position.x - halfLen, straw.position.y, straw.position.z),
                         new THREE.Vector3(straw.position.x + halfLen, straw.position.y, straw.position.z)
                     );
                 } else if (direction === 'vertical') {
+                    // 垂直吸管：连接点在 Y 轴方向
                     jointPositions.push(
                         new THREE.Vector3(straw.position.x, straw.position.y - halfLen, straw.position.z),
                         new THREE.Vector3(straw.position.x, straw.position.y + halfLen, straw.position.z)
                     );
                 } else if (direction === 'diagonal') {
-                    const halfLen = STRAW_DIAGONAL_BODY_LENGTH / 2;
+                    // 斜向吸管：连接点在 45 度方向
                     const sin45 = Math.sqrt(2) / 2;
                     const cos45 = Math.sqrt(2) / 2;
                     jointPositions.push(

@@ -1554,13 +1554,24 @@
                     return;
                 }
                 
-                // 保存到当前选中的方案或第一个空方案
+                // 确定保存目标
                 let saveIndex = currentDesignIndex;
+                
+                // 如果当前没有选中任何方案，找第一个空方案
                 if (saveIndex === -1) {
                     saveIndex = designs.findIndex(d => d === null);
                 }
+                
+                // 如果所有方案都满了，默认保存到第一个
                 if (saveIndex === -1) {
-                    saveIndex = 0; // 覆盖第一个
+                    saveIndex = 0;
+                }
+                
+                // 检查目标方案是否已有内容，需要确认覆盖
+                if (designs[saveIndex] !== null) {
+                    if (!confirm(`方案 ${saveIndex + 1} 已有设计内容，确定要覆盖吗？\n\n覆盖后原设计将无法恢复。`)) {
+                        return; // 用户取消覆盖
+                    }
                 }
                 
                 // 保存设计数据
@@ -1570,7 +1581,7 @@
                 }));
                 
                 designs[saveIndex] = designData;
-                currentDesignIndex = saveIndex;
+                currentDesignIndex = saveIndex; // 更新当前方案
                 
                 // 更新 UI
                 updateDesignsUI();
@@ -1602,15 +1613,32 @@
         }
         
         function loadDesign(index) {
+            // 目标方案为空：直接切换，不做提示
             if (!designs[index]) {
-                showMessage('ℹ️', '该方案为空\n点击"保存设计"来保存当前设计');
+                // 如果有当前设计，提示会丢失
+                if (straws.length > 0) {
+                    if (!confirm('切换方案后，当前未保存的设计将会丢失。\n\n确定要切换到空方案吗？')) {
+                        return;
+                    }
+                }
+                // 清空当前设计
+                straws.forEach(straw => scene.remove(straw));
+                straws = [];
+                remainingStraws = 20;
+                updateCountDisplay();
+                currentDesignIndex = index;
+                updateDesignsUI();
+                showMessage('✅', `已切换到方案 ${index + 1}（空）`);
                 return;
             }
             
+            // 目标方案有内容：确认是否切换
             deselectStraw();
             
-            if (straws.length > 0 && !confirm('切换方案将清空当前设计，确定继续吗？')) {
-                return;
+            if (straws.length > 0) {
+                if (!confirm('切换方案将清空当前未保存的设计，确定继续吗？\n\n当前设计需要先保存，否则会丢失。')) {
+                    return;
+                }
             }
             
             // 清空当前设计

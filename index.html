@@ -3,12 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>结构与设计 - 吸管搭建实验室 v20260322-4 最终修复版</title>
-    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
-    <meta http-equiv="Pragma" content="no-cache">
-    <meta http-equiv="Expires" content="0">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js?v=20260322"></script>
-    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js?v=20260322"></script>
+    <title>结构与设计 - 吸管搭建实验室</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
     <style>
         * {
             margin: 0;
@@ -213,23 +210,6 @@
             color: white;
         }
         
-        #undo-btn {
-            background: linear-gradient(135deg, #95a5a6, #7f8c8d);
-            color: white;
-            pointer-events: none; /* 禁用时完全阻止点击 */
-        }
-        
-        #undo-btn:not(:disabled) {
-            background: linear-gradient(135deg, #3498db, #2980b9);
-            box-shadow: 0 4px 15px rgba(52, 152, 219, 0.4);
-            pointer-events: auto;
-        }
-        
-        #undo-btn:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-        }
-        
         /* 方案切换栏 */
         #designs-bar {
             position: fixed;
@@ -262,7 +242,6 @@
             cursor: pointer;
             transition: all 0.3s;
             font-size: 14px;
-            border: 2px solid transparent;
         }
         
         .design-slot:hover {
@@ -272,21 +251,11 @@
         .design-slot.active {
             background: #4a90e2;
             color: white;
-            border-color: #2980b9;
-            box-shadow: 0 2px 8px rgba(74, 144, 226, 0.4);
-            font-weight: bold;
         }
         
         .design-slot.empty {
             color: #95a5a6;
             font-style: italic;
-        }
-        
-        .design-slot.empty.active {
-            background: #bdc3c7;
-            border-color: #95a5a6;
-            color: #2c3e50;
-            font-style: normal;
         }
         
         /* 提示信息 */
@@ -623,7 +592,7 @@
                 <span>剩余材料：</span>
                 <div id="count-display">20</div>
             </div>
-            <div style="font-size: 18px; color: #666;">🏗️ 结构与设计 <span style="font-size: 12px; color: #999;">v20260322-4</span></div>
+            <div style="font-size: 18px; color: #666;">🏗️ 结构与设计</div>
         </div>
         
         <!-- 方案切换栏 -->
@@ -667,15 +636,11 @@
         
         <!-- 底部工具栏 -->
         <div id="toolbar">
-            <button class="tool-btn" id="undo-btn" disabled>↩️ 撤销</button>
             <button class="tool-btn" id="add-straw-btn">➕ 添加吸管</button>
             <button class="tool-btn" id="delete-btn">🗑️ 删除模式</button>
             <button class="tool-btn" id="reset-btn">🔄 重新开始</button>
             <button class="tool-btn" id="save-btn">💾 保存设计</button>
         </div>
-        
-        <!-- 调试信息 -->
-        <div id="debug-info" style="position: fixed; top: 70px; left: 20px; background: rgba(0,0,0,0.7); color: #0f0; padding: 10px 15px; border-radius: 8px; font-family: monospace; font-size: 12px; z-index: 9999;"></div>
         
         <!-- 消息提示 -->
         <div id="message">
@@ -700,13 +665,12 @@
         let currentDesignIndex = -1;
         let designs = [null, null, null, null, null]; // 最多 5 个方案
         
-        const STRAW_VISUAL_LENGTH = 2; // 吸管总视觉长度（包括两端球体外边缘）= 2 格
-        const STRAW_DIAGONAL_VISUAL_LENGTH = 2 * Math.sqrt(2); // 斜向吸管总视觉长度
+        const STRAW_TOTAL_LENGTH = 2; // 水平/垂直吸管总长度（包含两端球体）
+        const STRAW_DIAGONAL_LENGTH = 2 * Math.sqrt(2); // 斜向吸管总长度（45 度对角线）
         const STRAW_RADIUS = 0.15;
         const JOINT_RADIUS = STRAW_RADIUS * 1.3; // 连接点球体半径
-        // 球体中心距离 = 总视觉长度 - 2×球半径
-        const STRAW_LENGTH = STRAW_VISUAL_LENGTH - 2 * JOINT_RADIUS; // 水平/垂直吸管球体中心距离
-        const STRAW_DIAGONAL_BODY_LENGTH = STRAW_DIAGONAL_VISUAL_LENGTH - 2 * JOINT_RADIUS; // 斜向吸管球体中心距离
+        const STRAW_LENGTH = STRAW_TOTAL_LENGTH - 2 * JOINT_RADIUS; // 水平/垂直吸管主体长度
+        const STRAW_DIAGONAL_BODY_LENGTH = STRAW_DIAGONAL_LENGTH - 2 * JOINT_RADIUS; // 斜向吸管主体长度
         const STRAW_COLOR = 0x4a90e2; // 蓝色 - 未选中
         const STRAW_SELECTED_COLOR = 0xe74c3c; // 红色 - 选中
         const GRID_SIZE = 20;
@@ -717,31 +681,14 @@
         let dragPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
         let dragOffset = new THREE.Vector3();
         let dragTouchId = null; // 拖拽吸管的触摸 ID
-        let dragStateSaved = false; // 标记拖动状态是否已保存
         
-        // 智能校准相关
-        const SNAP_THRESHOLD = 0.4; // 校准阈值（单位，球体中心距离）
-        const SNAP_ALIGN_THRESHOLD = 0.15; // 完全对齐阈值（小于此值直接对齐）
-        let snapTarget = null; // 当前校准的目标点
-        let snapHighlight = null; // 校准高亮标记
-        let isSnapped = false; // 当前是否处于校准状态
+        // 自动吸附相关
+        const SNAP_THRESHOLD = 0.3; // 吸附阈值（单位）
+        let snapTarget = null; // 当前吸附的目标点
+        let snapHighlight = null; // 吸附高亮标记
         
         // 吸管方向
         let currentStrawDirection = 'horizontal'; // horizontal, vertical, diagonal
-        
-        // 页面加载时输出全局常量（用于调试）
-        console.log(`===== 全局常量 =====`);
-        console.log(`STRAW_VISUAL_LENGTH: ${STRAW_VISUAL_LENGTH}`);
-        console.log(`STRAW_RADIUS: ${STRAW_RADIUS}`);
-        console.log(`JOINT_RADIUS: ${JOINT_RADIUS}`);
-        console.log(`STRAW_LENGTH (球心距): ${STRAW_LENGTH}`);
-        console.log(`STRAW_DIAGONAL_BODY_LENGTH: ${STRAW_DIAGONAL_BODY_LENGTH}`);
-        console.log(`验证：STRAW_LENGTH + 2×JOINT_RADIUS = ${(STRAW_LENGTH + 2*JOINT_RADIUS).toFixed(3)} (应该=2.000)`);
-        console.log(`圆柱体长度 = STRAW_LENGTH - 2×JOINT_RADIUS = ${(STRAW_LENGTH - 2*JOINT_RADIUS).toFixed(3)}`);
-        
-        // 撤销历史
-        const MAX_UNDO_STEPS = 10;
-        let undoHistory = []; // 撤销历史栈
         
         // ========== 初始化 Three.js 场景 ==========
         function initScene() {
@@ -864,23 +811,11 @@
         function createStraw(position, direction = 'horizontal', rotationY = 0) {
             const group = new THREE.Group();
             
-            // 根据方向选择吸管长度（球体中心之间的距离）
+            // 根据方向选择吸管长度
             const bodyLength = direction === 'diagonal' ? STRAW_DIAGONAL_BODY_LENGTH : STRAW_LENGTH;
             
-            // 圆柱体长度 = 球心距 - 2×球半径（圆柱体两端正好接触球体内侧）
-            const cylinderLength = bodyLength - 2 * JOINT_RADIUS;
-            
-            // 计算总视觉长度（用于调试）
-            const visualLength = bodyLength + 2 * JOINT_RADIUS;
-            
-            // 在页面上显示调试信息
-            const debugDiv = document.getElementById('debug-info');
-            if (debugDiv) {
-                debugDiv.innerHTML = `吸管长度：${visualLength.toFixed(3)} (应该=2.000) | bodyLength=${bodyLength.toFixed(3)} | cylinderLength=${cylinderLength.toFixed(3)} | JOINT_RADIUS=${JOINT_RADIUS}`;
-            }
-            
             // 吸管主体 - 默认垂直方向（圆柱默认是 Y 轴方向）
-            const geometry = new THREE.CylinderGeometry(STRAW_RADIUS, STRAW_RADIUS, cylinderLength, 8);
+            const geometry = new THREE.CylinderGeometry(STRAW_RADIUS, STRAW_RADIUS, bodyLength, 8);
             const material = new THREE.MeshLambertMaterial({ 
                 color: STRAW_COLOR,
                 transparent: true,
@@ -894,42 +829,38 @@
             
             const joint1 = new THREE.Mesh(jointGeometry, jointMaterial);
             const joint2 = new THREE.Mesh(jointGeometry, jointMaterial);
-            joint1.castShadow = true;
-            joint2.castShadow = true;
             
             // 根据方向设置吸管和连接点
-            // 球体中心位置 = 圆柱体端点 + 球体半径
-            const jointOffset = cylinderLength / 2 + JOINT_RADIUS;
-            
             if (direction === 'horizontal') {
                 // 水平：绕 Z 轴旋转 90 度
                 cylinder.rotation.z = Math.PI / 2;
-                joint1.position.x = -jointOffset;
-                joint2.position.x = jointOffset;
-                group.add(joint1);
-                group.add(joint2);
+                joint1.position.x = -bodyLength / 2;
+                joint2.position.x = bodyLength / 2;
             } else if (direction === 'vertical') {
                 // 垂直：保持默认（圆柱默认就是垂直的）
-                joint1.position.y = -jointOffset;
-                joint2.position.y = jointOffset;
-                group.add(joint1);
-                group.add(joint2);
+                cylinder.rotation.x = 0;
+                joint1.position.y = -bodyLength / 2;
+                joint2.position.y = bodyLength / 2;
             } else if (direction === 'diagonal') {
-                // 斜向 45 度：球体作为圆柱体的子对象，跟随圆柱体旋转
-                // 这样球体和圆柱体永远在一条直线上
-                joint1.position.y = -jointOffset;
-                joint2.position.y = jointOffset;
-                cylinder.add(joint1);
-                cylinder.add(joint2);
+                // 斜向 45 度：绕 Z 轴旋转 45 度（长度 = 2√2 ≈ 2.83）
                 cylinder.rotation.z = Math.PI / 4;
-            } else {
-                group.add(joint1);
-                group.add(joint2);
+                // 连接点沿 45 度方向分布
+                const halfLength = bodyLength / 2;
+                const sin45 = Math.sqrt(2) / 2;
+                const cos45 = Math.sqrt(2) / 2;
+                // 连接点 1：右下方
+                joint1.position.x = halfLength * sin45;
+                joint1.position.y = -halfLength * cos45;
+                // 连接点 2：左上方
+                joint2.position.x = -halfLength * sin45;
+                joint2.position.y = halfLength * cos45;
             }
             
             cylinder.castShadow = true;
             cylinder.userData.isStrawBody = true;
             group.add(cylinder);
+            group.add(joint1);
+            group.add(joint2);
             
             group.position.copy(position);
             group.rotation.y = rotationY;
@@ -1020,110 +951,74 @@
             scene.add(snapHighlight);
         }
         
-        // 获取吸管两端连接点（球体中心）的世界坐标
-        function getStrawJointPositions(straw) {
-            const direction = straw.userData.direction || 'horizontal';
-            const halfLen = direction === 'diagonal' ? STRAW_DIAGONAL_BODY_LENGTH / 2 : STRAW_LENGTH / 2;
-            const rotationY = straw.rotation.y;
-            const joints = [];
-            
-            if (direction === 'horizontal') {
-                const cosR = Math.cos(rotationY);
-                const sinR = Math.sin(rotationY);
-                joints.push(
-                    new THREE.Vector3(straw.position.x - halfLen * cosR, straw.position.y, straw.position.z - halfLen * sinR),
-                    new THREE.Vector3(straw.position.x + halfLen * cosR, straw.position.y, straw.position.z + halfLen * sinR)
-                );
-            } else if (direction === 'vertical') {
-                joints.push(
-                    new THREE.Vector3(straw.position.x, straw.position.y - halfLen, straw.position.z),
-                    new THREE.Vector3(straw.position.x, straw.position.y + halfLen, straw.position.z)
-                );
-            } else if (direction === 'diagonal') {
-                const sin45 = Math.sqrt(2) / 2;
-                const cos45 = Math.sqrt(2) / 2;
-                const cosR = Math.cos(rotationY);
-                const sinR = Math.sin(rotationY);
-                const j1x = -halfLen * sin45;
-                const j1y = -halfLen * cos45;
-                const j2x = halfLen * sin45;
-                const j2y = halfLen * cos45;
-                joints.push(
-                    new THREE.Vector3(straw.position.x + j1x * cosR, straw.position.y + j1y, straw.position.z + j1x * sinR),
-                    new THREE.Vector3(straw.position.x + j2x * cosR, straw.position.y + j2y, straw.position.z + j2x * sinR)
-                );
-            }
-            
-            return joints;
-        }
-        
-        // 检测并更新智能校准
-        function updateSnap() {
+        // 检测并更新吸附
+        function updateSnap(position) {
             if (!selectedStraw) return null;
             
-            // 获取选中吸管的所有连接点（球体中心）
-            const selectedJoints = getStrawJointPositions(selectedStraw);
-            
-            // 获取所有其他吸管的连接点
-            const allJoints = [];
+            // 获取所有吸管的连接点位置
+            const jointPositions = [];
             straws.forEach(straw => {
-                if (straw === selectedStraw) return;
-                const joints = getStrawJointPositions(straw);
-                allJoints.push(...joints);
+                if (straw === selectedStraw) return; // 跳过当前选中的吸管
+                
+                const direction = straw.userData.direction || 'horizontal';
+                const halfLen = STRAW_LENGTH / 2;
+                
+                // 计算两个连接点的世界坐标
+                if (direction === 'horizontal') {
+                    jointPositions.push(
+                        new THREE.Vector3(straw.position.x - halfLen, straw.position.y, straw.position.z),
+                        new THREE.Vector3(straw.position.x + halfLen, straw.position.y, straw.position.z)
+                    );
+                } else if (direction === 'vertical') {
+                    jointPositions.push(
+                        new THREE.Vector3(straw.position.x, straw.position.y - halfLen, straw.position.z),
+                        new THREE.Vector3(straw.position.x, straw.position.y + halfLen, straw.position.z)
+                    );
+                } else if (direction === 'diagonal') {
+                    const halfLen = STRAW_DIAGONAL_BODY_LENGTH / 2;
+                    const sin45 = Math.sqrt(2) / 2;
+                    const cos45 = Math.sqrt(2) / 2;
+                    jointPositions.push(
+                        new THREE.Vector3(
+                            straw.position.x - halfLen * sin45,
+                            straw.position.y - halfLen * cos45,
+                            straw.position.z
+                        ),
+                        new THREE.Vector3(
+                            straw.position.x + halfLen * sin45,
+                            straw.position.y + halfLen * cos45,
+                            straw.position.z
+                        )
+                    );
+                }
             });
             
-            // 找到最近的连接点对（球体中心对球体中心）
-            let nearestTarget = null;
-            let nearestSelectedJoint = null;
+            // 找到最近的连接点
+            let nearestPoint = null;
             let nearestDist = SNAP_THRESHOLD;
             
-            selectedJoints.forEach(selectedJoint => {
-                allJoints.forEach(targetJoint => {
-                    const dist = selectedJoint.distanceTo(targetJoint);
-                    if (dist < nearestDist) {
-                        nearestDist = dist;
-                        nearestTarget = targetJoint;
-                        nearestSelectedJoint = selectedJoint;
-                    }
-                });
+            jointPositions.forEach(point => {
+                const dist = position.distanceTo(point);
+                if (dist < nearestDist) {
+                    nearestDist = dist;
+                    nearestPoint = point;
+                }
             });
             
             // 更新吸附状态
-            snapTarget = nearestTarget;
-            isSnapped = (nearestTarget !== null && nearestDist < SNAP_ALIGN_THRESHOLD);
+            snapTarget = nearestPoint;
             
-            // 更新高亮位置（高亮目标连接点）
+            // 更新高亮位置
             if (snapHighlight) {
-                if (nearestTarget) {
-                    snapHighlight.position.copy(nearestTarget);
+                if (nearestPoint) {
+                    snapHighlight.position.copy(nearestPoint);
                     snapHighlight.visible = true;
-                    // 校准成功时变亮
-                    snapHighlight.material.opacity = isSnapped ? 1 : 0.3;
                 } else {
                     snapHighlight.visible = false;
                 }
             }
             
-            // 返回校准向量（选中吸管需要移动的方向和距离）
-            if (nearestTarget && nearestSelectedJoint) {
-                // 只计算水平方向的偏移（XZ 平面），保持 Y 轴高度不变
-                const horizontalOffset = new THREE.Vector3(
-                    nearestTarget.x - nearestSelectedJoint.x,
-                    0,  // Y 轴保持为 0，不改变高度
-                    nearestTarget.z - nearestSelectedJoint.z
-                );
-                const horizontalDist = Math.sqrt(horizontalOffset.x * horizontalOffset.x + horizontalOffset.z * horizontalOffset.z);
-                
-                return {
-                    target: nearestTarget,
-                    currentJoint: nearestSelectedJoint,
-                    distance: nearestDist,
-                    horizontalDistance: horizontalDist,
-                    horizontalOffset: horizontalOffset
-                };
-            }
-            
-            return null;
+            return nearestPoint;
         }
         
         function onCanvasClick(event) {
@@ -1164,9 +1059,6 @@
                     const clickedBody = intersects[0].object;
                     const clickedStraw = straws.find(s => s.children.includes(clickedBody));
                     if (clickedStraw) {
-                        // 保存操作前状态
-                        saveToUndoHistory();
-                        
                         removeStraw(clickedStraw);
                         showMessage('🗑️', '已删除吸管');
                     }
@@ -1241,9 +1133,6 @@
                     newPosition.z = Math.max(-GRID_SIZE/2 + 1, Math.min(GRID_SIZE/2 - 1, newPosition.z));
                     newPosition.y = Math.max(STRAW_RADIUS, Math.min(GRID_SIZE, newPosition.y));
                     
-                    // 保存操作前状态
-                    saveToUndoHistory();
-                    
                     const straw = createStraw(newPosition, currentStrawDirection);
                     scene.add(straw);
                     straws.push(straw);
@@ -1294,9 +1183,6 @@
                             // 水平吸管：中心点在 STRAW_RADIUS 处
                             intersection.y = STRAW_RADIUS;
                         }
-                        
-                        // 保存操作前状态
-                        saveToUndoHistory();
                         
                         const straw = createStraw(intersection, currentStrawDirection);
                         scene.add(straw);
@@ -1439,25 +1325,11 @@
                             dragOffset.copy(intersection);
                         }
                         
-                        // 拖动开始后第一次移动时保存状态
-                        if (!dragStateSaved) {
-                            saveToUndoHistory();
-                            dragStateSaved = true;
-                        }
-                        
-                        // 检测并应用智能校准（只在水平方向 XZ 平面）
-                        const snapInfo = updateSnap();
-                        if (snapInfo && snapInfo.horizontalDistance < SNAP_THRESHOLD) {
-                            if (snapInfo.horizontalDistance < SNAP_ALIGN_THRESHOLD) {
-                                // 距离很近时，只在水平方向对齐（保持 Y 轴高度）
-                                selectedStraw.position.x += snapInfo.horizontalOffset.x;
-                                selectedStraw.position.z += snapInfo.horizontalOffset.z;
-                            } else if (snapInfo.horizontalDistance < SNAP_THRESHOLD * 0.7) {
-                                // 距离较近时，轻微拉动提示（只在水平方向）
-                                const moveOffset = snapInfo.horizontalOffset.clone().multiplyScalar(0.3);
-                                selectedStraw.position.x += moveOffset.x;
-                                selectedStraw.position.z += moveOffset.z;
-                            }
+                        // 检测并应用自动吸附
+                        const snapPoint = updateSnap(selectedStraw.position);
+                        if (snapPoint) {
+                            // 吸附到连接点
+                            selectedStraw.position.copy(snapPoint);
                         }
                         
                         // 限制在网格范围内
@@ -1509,25 +1381,10 @@
                 dragOffset.copy(intersection);
             }
             
-            // 拖动开始后第一次移动时保存状态
-            if (!dragStateSaved) {
-                saveToUndoHistory();
-                dragStateSaved = true;
-            }
-            
-            // 检测并应用智能校准（只在水平方向 XZ 平面）
-            const snapInfo = updateSnap();
-            if (snapInfo && snapInfo.horizontalDistance < SNAP_THRESHOLD) {
-                if (snapInfo.horizontalDistance < SNAP_ALIGN_THRESHOLD) {
-                    // 距离很近时，只在水平方向对齐（保持 Y 轴高度）
-                    selectedStraw.position.x += snapInfo.horizontalOffset.x;
-                    selectedStraw.position.z += snapInfo.horizontalOffset.z;
-                } else if (snapInfo.horizontalDistance < SNAP_THRESHOLD * 0.7) {
-                    // 距离较近时，轻微拉动提示（只在水平方向）
-                    const moveOffset = snapInfo.horizontalOffset.clone().multiplyScalar(0.3);
-                    selectedStraw.position.x += moveOffset.x;
-                    selectedStraw.position.z += moveOffset.z;
-                }
+            // 检测并应用自动吸附
+            const snapPoint = updateSnap(selectedStraw.position);
+            if (snapPoint) {
+                selectedStraw.position.copy(snapPoint);
             }
             
             // 限制在网格范围内
@@ -1562,117 +1419,6 @@
             if (remainingStraws === 0) {
                 display.classList.add('empty');
             }
-        }
-        
-        // 保存当前状态到撤销历史
-        function saveToUndoHistory() {
-            // 深拷贝当前状态（使用toFixed 保证精度）
-            const state = {
-                straws: straws.map(straw => ({
-                    position: { 
-                        x: parseFloat(straw.position.x.toFixed(6)), 
-                        y: parseFloat(straw.position.y.toFixed(6)), 
-                        z: parseFloat(straw.position.z.toFixed(6))
-                    },
-                    rotation: { 
-                        x: parseFloat(straw.rotation.x.toFixed(6)), 
-                        y: parseFloat(straw.rotation.y.toFixed(6)), 
-                        z: parseFloat(straw.rotation.z.toFixed(6))
-                    },
-                    direction: straw.userData.direction || 'horizontal'
-                })),
-                remainingStraws: remainingStraws
-            };
-            
-            // 添加到历史栈
-            undoHistory.push(JSON.parse(JSON.stringify(state)));
-            
-            // 限制历史记录数量
-            if (undoHistory.length > MAX_UNDO_STEPS) {
-                undoHistory.shift();
-            }
-            
-            updateUndoButton();
-        }
-        
-        // 撤销操作
-        function undo() {
-            if (undoHistory.length === 0) {
-                console.log('撤销历史为空');
-                return;
-            }
-            
-            // 保存当前相机状态
-            const cameraPosition = camera.position.clone();
-            const cameraTarget = controls.target.clone();
-            
-            const lastState = undoHistory.pop();
-            
-            // 清空当前场景
-            straws.forEach(straw => scene.remove(straw));
-            straws = [];
-            
-            // 恢复上一个状态
-            if (lastState && lastState.straws) {
-                lastState.straws.forEach((data, index) => {
-                    // 只恢复 rotation.y（水平旋转），不要恢复 x/z
-                    // 因为 createStraw 内部已根据 direction 设置了 cylinder 的旋转
-                    // 恢复 straw.rotation.z 会导致整个 Group 倾斜，造成视觉变形
-                    const straw = createStraw(
-                        new THREE.Vector3(data.position.x, data.position.y, data.position.z),
-                        data.direction || 'horizontal',
-                        data.rotation.y || 0
-                    );
-                    
-                    scene.add(straw);
-                    straws.push(straw);
-                });
-                
-                remainingStraws = lastState.remainingStraws;
-            }
-            
-            // 强制更新场景和渲染
-            scene.updateMatrixWorld(true);
-            renderer.render(scene, camera);
-            
-            // 恢复相机状态（防止撤销后视角变化导致视觉差异）
-            camera.position.copy(cameraPosition);
-            controls.target.copy(cameraTarget);
-            controls.update();
-            
-            // 清除选中状态（防止 selectedStraw 指向已删除的对象）
-            if (selectedStraw) {
-                deselectStraw();
-            }
-            
-            // 强制更新显示
-            updateCountDisplay();
-            updateUndoButton();
-            
-            showMessage('↩️', '已撤销上一步操作');
-        }
-        
-        // 更新撤销按钮状态
-        function updateUndoButton() {
-            const undoBtn = document.getElementById('undo-btn');
-            if (undoBtn) {
-                const hasHistory = (undoHistory.length > 0);
-                undoBtn.disabled = !hasHistory;
-                // 强制更新按钮样式
-                if (hasHistory) {
-                    undoBtn.style.pointerEvents = 'auto';
-                    undoBtn.style.opacity = '1';
-                } else {
-                    undoBtn.style.pointerEvents = 'none';
-                    undoBtn.style.opacity = '0.5';
-                }
-            }
-        }
-        
-        // 清空撤销历史
-        function clearUndoHistory() {
-            undoHistory = [];
-            updateUndoButton();
         }
         
         function getDirectionName(dir) {
@@ -1734,34 +1480,13 @@
                 deselectStraw();
                 
                 if (confirm('确定要清空所有吸管重新开始吗？')) {
-                    // 保存操作前状态
-                    saveToUndoHistory();
-                    
                     straws.forEach(straw => scene.remove(straw));
                     straws = [];
                     remainingStraws = 20;
                     updateCountDisplay();
-                    clearUndoHistory(); // 重置后清空历史
                     showMessage('🔄', '已重新开始');
                 }
             });
-            
-            // 撤销按钮
-            const undoBtn = document.getElementById('undo-btn');
-            
-            // 初始化撤销按钮状态
-            updateUndoButton();
-            
-            if (undoBtn) {
-                undoBtn.addEventListener('click', (e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    console.log('撤销按钮被点击，历史长度:', undoHistory.length);
-                    if (undoHistory.length > 0) {
-                        undo();
-                    }
-                });
-            }
             
             // 方向选择器
             const directionSelector = document.getElementById('direction-selector');
@@ -1785,9 +1510,6 @@
             
             rotateLeftBtn.addEventListener('click', () => {
                 if (selectedStraw) {
-                    // 保存操作前状态
-                    saveToUndoHistory();
-                    
                     selectedStraw.rotation.y += Math.PI / 12;
                     showMessage('↩️', '向左旋转 15°');
                 }
@@ -1795,9 +1517,6 @@
             
             rotateRightBtn.addEventListener('click', () => {
                 if (selectedStraw) {
-                    // 保存操作前状态
-                    saveToUndoHistory();
-                    
                     selectedStraw.rotation.y -= Math.PI / 12;
                     showMessage('↪️', '向右旋转 15°');
                 }
@@ -1805,9 +1524,6 @@
             
             moveUpBtn.addEventListener('click', () => {
                 if (selectedStraw) {
-                    // 保存操作前状态
-                    saveToUndoHistory();
-                    
                     selectedStraw.position.y += 0.5;
                     selectedStraw.position.y = Math.min(GRID_SIZE, selectedStraw.position.y);
                     showMessage('⬆️', '升高 0.5 单位');
@@ -1816,9 +1532,6 @@
             
             moveDownBtn.addEventListener('click', () => {
                 if (selectedStraw) {
-                    // 保存操作前状态
-                    saveToUndoHistory();
-                    
                     selectedStraw.position.y -= 0.5;
                     selectedStraw.position.y = Math.max(STRAW_RADIUS, selectedStraw.position.y);
                     showMessage('⬇️', '降低 0.5 单位');
@@ -1839,35 +1552,23 @@
                     return;
                 }
                 
-                // 确定保存目标
+                // 保存到当前选中的方案或第一个空方案
                 let saveIndex = currentDesignIndex;
-                
-                // 如果当前没有选中任何方案，找第一个空方案
                 if (saveIndex === -1) {
                     saveIndex = designs.findIndex(d => d === null);
                 }
-                
-                // 如果所有方案都满了，默认保存到第一个
                 if (saveIndex === -1) {
-                    saveIndex = 0;
+                    saveIndex = 0; // 覆盖第一个
                 }
                 
-                // 检查目标方案是否已有内容，需要确认覆盖
-                if (designs[saveIndex] !== null) {
-                    if (!confirm(`方案 ${saveIndex + 1} 已有设计内容，确定要覆盖吗？\n\n覆盖后原设计将无法恢复。`)) {
-                        return; // 用户取消覆盖
-                    }
-                }
-                
-                // 保存设计数据（包含方向信息）
+                // 保存设计数据
                 const designData = straws.map(straw => ({
                     position: { x: straw.position.x, y: straw.position.y, z: straw.position.z },
-                    rotation: { x: straw.rotation.x, y: straw.rotation.y, z: straw.rotation.z },
-                    direction: straw.userData.direction || 'horizontal'
+                    rotation: { x: straw.rotation.x, y: straw.rotation.y, z: straw.rotation.z }
                 }));
                 
                 designs[saveIndex] = designData;
-                currentDesignIndex = saveIndex; // 更新当前方案
+                currentDesignIndex = saveIndex;
                 
                 // 更新 UI
                 updateDesignsUI();
@@ -1884,16 +1585,14 @@
         function updateDesignsUI() {
             const slots = document.querySelectorAll('.design-slot');
             slots.forEach((slot, index) => {
-                const isActive = (index === currentDesignIndex);
-                
                 if (designs[index]) {
                     slot.classList.remove('empty');
                     slot.textContent = `方案 ${index + 1}（${designs[index].length}根）`;
-                    slot.classList.toggle('active', isActive);
+                    slot.classList.toggle('active', index === currentDesignIndex);
                 } else {
                     slot.classList.add('empty');
                     slot.textContent = `方案 ${index + 1}（空）`;
-                    slot.classList.toggle('active', isActive);
+                    slot.classList.remove('active');
                 }
                 
                 slot.onclick = () => loadDesign(index);
@@ -1901,44 +1600,27 @@
         }
         
         function loadDesign(index) {
-            deselectStraw();
-            
-            // 目标方案为空：不清空当前内容，只是切换当前方案索引，用户可以继续编辑
             if (!designs[index]) {
-                // 如果有未保存的内容，提示用户（延长显示时间到 3 秒）
-                if (straws.length > 0) {
-                    showMessage('ℹ️', `已切换到方案 ${index + 1}（空）\n\n当前设计未保存，请记得先保存再切换其他方案`, 3000);
-                } else {
-                    showMessage('✅', `已切换到方案 ${index + 1}（空）`, 3000);
-                }
-                currentDesignIndex = index;
-                updateDesignsUI();
-                clearUndoHistory(); // 切换方案时清空历史
+                showMessage('ℹ️', '该方案为空\n点击"保存设计"来保存当前设计');
                 return;
             }
             
-            // 目标方案有内容：确认是否切换（切换会清空当前未保存的内容）
-            if (straws.length > 0) {
-                if (!confirm('切换方案将清空当前未保存的设计，确定继续吗？\n\n当前设计需要先保存，否则会丢失。')) {
-                    return;
-                }
+            deselectStraw();
+            
+            if (straws.length > 0 && !confirm('切换方案将清空当前设计，确定继续吗？')) {
+                return;
             }
             
             // 清空当前设计
             straws.forEach(straw => scene.remove(straw));
             straws = [];
             
-            // 加载已保存的设计
+            // 加载新设计
             designs[index].forEach(data => {
                 const straw = createStraw(
                     new THREE.Vector3(data.position.x, data.position.y, data.position.z),
-                    data.direction || 'horizontal',
-                    data.rotation.y
+                    new THREE.Euler(data.rotation.x, data.rotation.y, data.rotation.z)
                 );
-                // 恢复完整的旋转信息
-                straw.rotation.x = data.rotation.x;
-                straw.rotation.y = data.rotation.y;
-                straw.rotation.z = data.rotation.z;
                 scene.add(straw);
                 straws.push(straw);
             });
@@ -1947,13 +1629,12 @@
             updateCountDisplay();
             currentDesignIndex = index;
             updateDesignsUI();
-            clearUndoHistory(); // 切换方案时清空历史
             
             showMessage('✅', `已加载方案 ${index + 1}`);
         }
         
         // ========== 消息提示 ==========
-        function showMessage(icon, content, duration = 2000) {
+        function showMessage(icon, content) {
             const msgDiv = document.getElementById('message');
             const title = document.getElementById('message-title');
             const text = document.getElementById('message-content');
@@ -1964,7 +1645,7 @@
             
             setTimeout(() => {
                 msgDiv.classList.remove('show');
-            }, duration);
+            }, 2000);
         }
         
         // ========== 窗口大小调整 ==========
@@ -1990,4 +1671,3 @@
     </script>
 </body>
 </html>
-# Trigger rebuild

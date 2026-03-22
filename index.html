@@ -814,14 +814,18 @@
             // 根据方向选择吸管长度
             const bodyLength = direction === 'diagonal' ? STRAW_DIAGONAL_BODY_LENGTH : STRAW_LENGTH;
             
+            // 圆柱体长度 = bodyLength（球体作为子对象，不需要减去球体半径）
+            const cylinderLength = bodyLength;
+            
             // 吸管主体 - 默认垂直方向（圆柱默认是 Y 轴方向）
-            const geometry = new THREE.CylinderGeometry(STRAW_RADIUS, STRAW_RADIUS, bodyLength, 8);
+            const geometry = new THREE.CylinderGeometry(STRAW_RADIUS, STRAW_RADIUS, cylinderLength, 12);
             const material = new THREE.MeshLambertMaterial({ 
                 color: STRAW_COLOR,
                 transparent: true,
-                opacity: 0.9
+                opacity: 0.95
             });
             const cylinder = new THREE.Mesh(geometry, material);
+            cylinder.castShadow = true;
             
             // 连接点（两端的小球）- 作为圆柱体的一部分，和圆柱体连成整体
             const jointGeometry = new THREE.SphereGeometry(JOINT_RADIUS * 0.9, 12, 12);
@@ -859,12 +863,8 @@
                 cylinder.add(joint1);  // 添加到圆柱体，不是 group
                 cylinder.add(joint2);
                 cylinder.rotation.z = Math.PI / 4;  // 旋转圆柱体，球体跟着转
-            } else {
-                group.add(joint1);
-                group.add(joint2);
             }
             
-            cylinder.castShadow = true;
             cylinder.userData.isStrawBody = true;
             group.add(cylinder);
             

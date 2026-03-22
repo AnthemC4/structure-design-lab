@@ -896,29 +896,31 @@
             const joint2 = new THREE.Mesh(jointGeometry, jointMaterial);
             
             // 根据方向设置吸管和连接点
+            // 球体中心位置 = 圆柱体端点 + 球体半径
+            const jointOffset = cylinderLength / 2 + JOINT_RADIUS;
+            
             if (direction === 'horizontal') {
                 // 水平：绕 Z 轴旋转 90 度
                 cylinder.rotation.z = Math.PI / 2;
-                joint1.position.x = -bodyLength / 2;
-                joint2.position.x = bodyLength / 2;
+                joint1.position.x = -jointOffset;
+                joint2.position.x = jointOffset;
             } else if (direction === 'vertical') {
                 // 垂直：保持默认（圆柱默认就是垂直的）
                 cylinder.rotation.x = 0;
-                joint1.position.y = -bodyLength / 2;
-                joint2.position.y = bodyLength / 2;
+                joint1.position.y = -jointOffset;
+                joint2.position.y = jointOffset;
             } else if (direction === 'diagonal') {
-                // 斜向 45 度：绕 Z 轴旋转 45 度（长度 = 2√2 ≈ 2.83）
+                // 斜向 45 度：绕 Z 轴旋转 45 度
                 cylinder.rotation.z = Math.PI / 4;
                 // 连接点沿 45 度方向分布
-                const halfLength = bodyLength / 2;
                 const sin45 = Math.sqrt(2) / 2;
                 const cos45 = Math.sqrt(2) / 2;
                 // 连接点 1：右下方
-                joint1.position.x = halfLength * sin45;
-                joint1.position.y = -halfLength * cos45;
+                joint1.position.x = -jointOffset * sin45;
+                joint1.position.y = -jointOffset * cos45;
                 // 连接点 2：左上方
-                joint2.position.x = -halfLength * sin45;
-                joint2.position.y = halfLength * cos45;
+                joint2.position.x = jointOffset * sin45;
+                joint2.position.y = jointOffset * cos45;
             }
             
             cylinder.castShadow = true;

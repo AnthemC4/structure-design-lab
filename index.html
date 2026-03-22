@@ -213,16 +213,19 @@
             color: white;
         }
         
+        #undo-btn {
             background: linear-gradient(135deg, #95a5a6, #7f8c8d);
             color: white;
             pointer-events: none; /* 禁用时完全阻止点击 */
         }
         
+        #undo-btn:not(:disabled) {
             background: linear-gradient(135deg, #3498db, #2980b9);
             box-shadow: 0 4px 15px rgba(52, 152, 219, 0.4);
             pointer-events: auto;
         }
         
+        #undo-btn:disabled {
             opacity: 0.5;
             cursor: not-allowed;
         }
@@ -664,6 +667,7 @@
         
         <!-- 底部工具栏 -->
         <div id="toolbar">
+            <button class="tool-btn" id="undo-btn" disabled>↩️ 撤销</button>
             <button class="tool-btn" id="add-straw-btn">➕ 添加吸管</button>
             <button class="tool-btn" id="delete-btn">🗑️ 删除模式</button>
             <button class="tool-btn" id="reset-btn">🔄 重新开始</button>
@@ -671,6 +675,7 @@
         </div>
         
         <!-- 调试信息 -->
+        <div id="debug-info" style="position: fixed; top: 70px; left: 20px; background: rgba(0,0,0,0.7); color: #0f0; padding: 10px 15px; border-radius: 8px; font-family: monospace; font-size: 12px; z-index: 9999;"></div>
         
         <!-- 消息提示 -->
         <div id="message">
@@ -724,6 +729,19 @@
         // 吸管方向
         let currentStrawDirection = 'horizontal'; // horizontal, vertical, diagonal
         
+        // 页面加载时输出全局常量（用于调试）
+        console.log(`===== 全局常量 =====`);
+        console.log(`STRAW_VISUAL_LENGTH: ${STRAW_VISUAL_LENGTH}`);
+        console.log(`STRAW_RADIUS: ${STRAW_RADIUS}`);
+        console.log(`JOINT_RADIUS: ${JOINT_RADIUS}`);
+        console.log(`STRAW_LENGTH (球心距): ${STRAW_LENGTH}`);
+        console.log(`STRAW_DIAGONAL_BODY_LENGTH: ${STRAW_DIAGONAL_BODY_LENGTH}`);
+        console.log(`验证：STRAW_LENGTH + 2×JOINT_RADIUS = ${(STRAW_LENGTH + 2*JOINT_RADIUS).toFixed(3)} (应该=2.000)`);
+        console.log(`圆柱体长度 = STRAW_LENGTH - 2×JOINT_RADIUS = ${(STRAW_LENGTH - 2*JOINT_RADIUS).toFixed(3)}`);
+        
+        // 撤销历史
+        const MAX_UNDO_STEPS = 10;
+        let undoHistory = []; // 撤销历史栈
         
         // ========== 初始化 Three.js 场景 ==========
         function initScene() {
@@ -850,56 +868,67 @@
             const bodyLength = direction === 'diagonal' ? STRAW_DIAGONAL_BODY_LENGTH : STRAW_LENGTH;
             
             // 圆柱体长度 = 球心距 - 2×球半径（圆柱体两端正好接触球体内侧）
+            const cylinderLength = bodyLength - 2 * JOINT_RADIUS;
             
-            // 吸管材料
-            const strawMaterial = new THREE.MeshLambertMaterial({ 
+            // 计算总视觉长度（用于调试）
+            const visualLength = bodyLength + 2 * JOINT_RADIUS;
+            
+            // 在页面上显示调试信息
+            const debugDiv = document.getElementById('debug-info');
+            if (debugDiv) {
+                debugDiv.innerHTML = `吸管长度：${visualLength.toFixed(3)} (应该=2.000) | bodyLength=${bodyLength.toFixed(3)} | cylinderLength=${cylinderLength.toFixed(3)} | JOINT_RADIUS=${JOINT_RADIUS}`;
+            }
+            
+            // 吸管主体 - 默认垂直方向（圆柱默认是 Y 轴方向）
+            const geometry = new THREE.CylinderGeometry(STRAW_RADIUS, STRAW_RADIUS, cylinderLength, 8);
+            const material = new THREE.MeshLambertMaterial({ 
                 color: STRAW_COLOR,
                 transparent: true,
-                opacity: 0.95
+                opacity: 0.9
             });
+            const cylinder = new THREE.Mesh(geometry, material);
             
-            // 球体材料（稍大一些，作为连接处标识）
-            const jointMaterial = new THREE.MeshLambertMaterial({ 
-                color: 0x5dade2,  // 稍浅的蓝色
-                transparent: true,
-                opacity: 0.95
-            });
+            // 连接点（两端的小球）- 比吸管稍大，让学生知道这是连接处（需要用胶带固定）
+            const jointGeometry = new THREE.SphereGeometry(JOINT_RADIUS, 8, 8);
+            const jointMaterial = new THREE.MeshLambertMaterial({ color: 0x3498db });
             
-            // 创建吸管主体（圆柱体）
-            const cylinder = new THREE.Mesh(cylinderGeo, strawMaterial);
-            cylinder.castShadow = true;
+            const joint1 = new THREE.Mesh(jointGeometry, jointMaterial);
+            const joint2 = new THREE.Mesh(jointGeometry, jointMaterial);
             
-            // 创建连接球体
-            const jointGeo = new THREE.SphereGeometry(JOINT_RADIUS * 0.9, 12, 12);  // 稍微小一点，避免重叠
-            const joint1 = new THREE.Mesh(jointGeo, jointMaterial);
-            const joint2 = new THREE.Mesh(jointGeo, jointMaterial);
-            joint1.castShadow = true;
-            joint2.castShadow = true;
+            // 根据方向设置吸管和连接点
+            // 球体中心位置 = 圆柱体端点 + 球体半径
+            const jointOffset = cylinderLength / 2 + JOINT_RADIUS;
             
-            // 球体中心位置（刚好接触圆柱体端点）
-            
-            // 根据方向设置位置
             if (direction === 'horizontal') {
+                // 水平：绕 Z 轴旋转 90 度
                 cylinder.rotation.z = Math.PI / 2;
                 joint1.position.x = -jointOffset;
                 joint2.position.x = jointOffset;
             } else if (direction === 'vertical') {
+                // 垂直：保持默认（圆柱默认就是垂直的）
+                cylinder.rotation.x = 0;
                 joint1.position.y = -jointOffset;
                 joint2.position.y = jointOffset;
             } else if (direction === 'diagonal') {
+                // 斜向 45 度：绕 Z 轴旋转 45 度
                 cylinder.rotation.z = Math.PI / 4;
+                // 连接点沿 45 度方向分布
                 const sin45 = Math.sqrt(2) / 2;
                 const cos45 = Math.sqrt(2) / 2;
+                // 连接点 1：右下方
                 joint1.position.x = -jointOffset * sin45;
                 joint1.position.y = -jointOffset * cos45;
+                // 连接点 2：左上方
                 joint2.position.x = jointOffset * sin45;
                 joint2.position.y = jointOffset * cos45;
             }
             
-            // 合并为一个组
+            cylinder.castShadow = true;
+            cylinder.userData.isStrawBody = true;
             group.add(cylinder);
             group.add(joint1);
             group.add(joint2);
+            
             group.position.copy(position);
             group.rotation.y = rotationY;
             
@@ -1134,6 +1163,7 @@
                     const clickedStraw = straws.find(s => s.children.includes(clickedBody));
                     if (clickedStraw) {
                         // 保存操作前状态
+                        saveToUndoHistory();
                         
                         removeStraw(clickedStraw);
                         showMessage('🗑️', '已删除吸管');
@@ -1210,6 +1240,7 @@
                     newPosition.y = Math.max(STRAW_RADIUS, Math.min(GRID_SIZE, newPosition.y));
                     
                     // 保存操作前状态
+                    saveToUndoHistory();
                     
                     const straw = createStraw(newPosition, currentStrawDirection);
                     scene.add(straw);
@@ -1263,6 +1294,7 @@
                         }
                         
                         // 保存操作前状态
+                        saveToUndoHistory();
                         
                         const straw = createStraw(intersection, currentStrawDirection);
                         scene.add(straw);
@@ -1407,6 +1439,7 @@
                         
                         // 拖动开始后第一次移动时保存状态
                         if (!dragStateSaved) {
+                            saveToUndoHistory();
                             dragStateSaved = true;
                         }
                         
@@ -1476,6 +1509,7 @@
             
             // 拖动开始后第一次移动时保存状态
             if (!dragStateSaved) {
+                saveToUndoHistory();
                 dragStateSaved = true;
             }
             
@@ -1528,6 +1562,8 @@
             }
         }
         
+        // 保存当前状态到撤销历史
+        function saveToUndoHistory() {
             // 深拷贝当前状态（使用toFixed 保证精度）
             const state = {
                 straws: straws.map(straw => ({
@@ -1547,13 +1583,20 @@
             };
             
             // 添加到历史栈
+            undoHistory.push(JSON.parse(JSON.stringify(state)));
             
             // 限制历史记录数量
+            if (undoHistory.length > MAX_UNDO_STEPS) {
+                undoHistory.shift();
             }
             
+            updateUndoButton();
         }
         
         // 撤销操作
+        function undo() {
+            if (undoHistory.length === 0) {
+                console.log('撤销历史为空');
                 return;
             }
             
@@ -1561,6 +1604,7 @@
             const cameraPosition = camera.position.clone();
             const cameraTarget = controls.target.clone();
             
+            const lastState = undoHistory.pop();
             
             // 清空当前场景
             straws.forEach(straw => scene.remove(straw));
@@ -1601,11 +1645,16 @@
             
             // 强制更新显示
             updateCountDisplay();
+            updateUndoButton();
             
+            showMessage('↩️', '已撤销上一步操作');
         }
         
         // 更新撤销按钮状态
+        function updateUndoButton() {
+            const undoBtn = document.getElementById('undo-btn');
             if (undoBtn) {
+                const hasHistory = (undoHistory.length > 0);
                 undoBtn.disabled = !hasHistory;
                 // 强制更新按钮样式
                 if (hasHistory) {
@@ -1618,7 +1667,10 @@
             }
         }
         
+        // 清空撤销历史
         function clearUndoHistory() {
+            undoHistory = [];
+            updateUndoButton();
         }
         
         function getDirectionName(dir) {
@@ -1681,6 +1733,7 @@
                 
                 if (confirm('确定要清空所有吸管重新开始吗？')) {
                     // 保存操作前状态
+                    saveToUndoHistory();
                     
                     straws.forEach(straw => scene.remove(straw));
                     straws = [];
@@ -1692,13 +1745,17 @@
             });
             
             // 撤销按钮
+            const undoBtn = document.getElementById('undo-btn');
             
             // 初始化撤销按钮状态
+            updateUndoButton();
             
             if (undoBtn) {
                 undoBtn.addEventListener('click', (e) => {
                     e.preventDefault();
                     e.stopPropagation();
+                    console.log('撤销按钮被点击，历史长度:', undoHistory.length);
+                    if (undoHistory.length > 0) {
                         undo();
                     }
                 });
@@ -1727,6 +1784,7 @@
             rotateLeftBtn.addEventListener('click', () => {
                 if (selectedStraw) {
                     // 保存操作前状态
+                    saveToUndoHistory();
                     
                     selectedStraw.rotation.y += Math.PI / 12;
                     showMessage('↩️', '向左旋转 15°');
@@ -1736,6 +1794,7 @@
             rotateRightBtn.addEventListener('click', () => {
                 if (selectedStraw) {
                     // 保存操作前状态
+                    saveToUndoHistory();
                     
                     selectedStraw.rotation.y -= Math.PI / 12;
                     showMessage('↪️', '向右旋转 15°');
@@ -1745,6 +1804,7 @@
             moveUpBtn.addEventListener('click', () => {
                 if (selectedStraw) {
                     // 保存操作前状态
+                    saveToUndoHistory();
                     
                     selectedStraw.position.y += 0.5;
                     selectedStraw.position.y = Math.min(GRID_SIZE, selectedStraw.position.y);
@@ -1755,6 +1815,7 @@
             moveDownBtn.addEventListener('click', () => {
                 if (selectedStraw) {
                     // 保存操作前状态
+                    saveToUndoHistory();
                     
                     selectedStraw.position.y -= 0.5;
                     selectedStraw.position.y = Math.max(STRAW_RADIUS, selectedStraw.position.y);

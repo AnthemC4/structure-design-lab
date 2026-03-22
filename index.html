@@ -823,44 +823,50 @@
             });
             const cylinder = new THREE.Mesh(geometry, material);
             
-            // 连接点（两端的小球）- 比吸管稍大，让学生知道这是连接处（需要用胶带固定）
-            const jointGeometry = new THREE.SphereGeometry(JOINT_RADIUS, 8, 8);
-            const jointMaterial = new THREE.MeshLambertMaterial({ color: 0x3498db });
+            // 连接点（两端的小球）- 作为圆柱体的一部分，和圆柱体连成整体
+            const jointGeometry = new THREE.SphereGeometry(JOINT_RADIUS * 0.9, 12, 12);
+            const jointMaterial = new THREE.MeshLambertMaterial({ color: 0x5dade2 });
             
             const joint1 = new THREE.Mesh(jointGeometry, jointMaterial);
             const joint2 = new THREE.Mesh(jointGeometry, jointMaterial);
+            joint1.castShadow = true;
+            joint2.castShadow = true;
+            
+            // 球体中心位置 = 圆柱体端点 + 球体半径
+            const jointOffset = cylinderLength / 2 + JOINT_RADIUS * 0.9;
             
             // 根据方向设置吸管和连接点
             if (direction === 'horizontal') {
-                // 水平：绕 Z 轴旋转 90 度
+                // 水平：圆柱体绕 Z 轴旋转 90 度
                 cylinder.rotation.z = Math.PI / 2;
-                joint1.position.x = -bodyLength / 2;
-                joint2.position.x = bodyLength / 2;
+                // 球体在圆柱体 X 轴两端
+                joint1.position.x = -jointOffset;
+                joint2.position.x = jointOffset;
+                group.add(joint1);
+                group.add(joint2);
             } else if (direction === 'vertical') {
-                // 垂直：保持默认（圆柱默认就是垂直的）
-                cylinder.rotation.x = 0;
-                joint1.position.y = -bodyLength / 2;
-                joint2.position.y = bodyLength / 2;
+                // 垂直：圆柱体默认沿 Y 轴
+                // 球体在圆柱体 Y 轴两端
+                joint1.position.y = -jointOffset;
+                joint2.position.y = jointOffset;
+                group.add(joint1);
+                group.add(joint2);
             } else if (direction === 'diagonal') {
-                // 斜向 45 度：绕 Z 轴旋转 45 度（长度 = 2√2 ≈ 2.83）
-                cylinder.rotation.z = Math.PI / 4;
-                // 连接点沿 45 度方向分布
-                const halfLength = bodyLength / 2;
-                const sin45 = Math.sqrt(2) / 2;
-                const cos45 = Math.sqrt(2) / 2;
-                // 连接点 1：右下方
-                joint1.position.x = halfLength * sin45;
-                joint1.position.y = -halfLength * cos45;
-                // 连接点 2：左上方
-                joint2.position.x = -halfLength * sin45;
-                joint2.position.y = halfLength * cos45;
+                // 斜向 45 度：球体作为圆柱体的子对象，跟随圆柱体旋转
+                // 这样球体和圆柱体永远连在一起，不会错位
+                joint1.position.y = -jointOffset;  // 相对于圆柱体 Y 轴
+                joint2.position.y = jointOffset;
+                cylinder.add(joint1);  // 添加到圆柱体，不是 group
+                cylinder.add(joint2);
+                cylinder.rotation.z = Math.PI / 4;  // 旋转圆柱体，球体跟着转
+            } else {
+                group.add(joint1);
+                group.add(joint2);
             }
             
             cylinder.castShadow = true;
             cylinder.userData.isStrawBody = true;
             group.add(cylinder);
-            group.add(joint1);
-            group.add(joint2);
             
             group.position.copy(position);
             group.rotation.y = rotationY;

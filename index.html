@@ -910,17 +910,15 @@
                 joint1.position.y = -jointOffset;
                 joint2.position.y = jointOffset;
             } else if (direction === 'diagonal') {
-                // 斜向 45 度：绕 Z 轴旋转 45 度
+                // 斜向 45 度：圆柱和球体都沿 45 度方向
                 cylinder.rotation.z = Math.PI / 4;
-                // 连接点沿 45 度方向分布
+                // 球体沿 45 度线分布（和圆柱体方向一致）
                 const sin45 = Math.sqrt(2) / 2;
                 const cos45 = Math.sqrt(2) / 2;
-                // 连接点 1：右下方
-                joint1.position.x = -jointOffset * sin45;
-                joint1.position.y = -jointOffset * cos45;
-                // 连接点 2：左上方
-                joint2.position.x = jointOffset * sin45;
-                joint2.position.y = jointOffset * cos45;
+                joint1.position.x = -jointOffset * cos45;
+                joint1.position.y = -jointOffset * sin45;
+                joint2.position.x = jointOffset * cos45;
+                joint2.position.y = jointOffset * sin45;
             }
             
             cylinder.castShadow = true;

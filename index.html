@@ -1533,18 +1533,18 @@
         
         // 保存当前状态到撤销历史
         function saveToUndoHistory() {
-            // 深拷贝当前状态
+            // 深拷贝当前状态（使用toFixed 保证精度）
             const state = {
                 straws: straws.map(straw => ({
                     position: { 
-                        x: straw.position.x, 
-                        y: straw.position.y, 
-                        z: straw.position.z 
+                        x: parseFloat(straw.position.x.toFixed(6)), 
+                        y: parseFloat(straw.position.y.toFixed(6)), 
+                        z: parseFloat(straw.position.z.toFixed(6))
                     },
                     rotation: { 
-                        x: straw.rotation.x, 
-                        y: straw.rotation.y, 
-                        z: straw.rotation.z 
+                        x: parseFloat(straw.rotation.x.toFixed(6)), 
+                        y: parseFloat(straw.rotation.y.toFixed(6)), 
+                        z: parseFloat(straw.rotation.z.toFixed(6))
                     },
                     direction: straw.userData.direction || 'horizontal'
                 })),
@@ -1577,16 +1577,19 @@
             straws.forEach(straw => scene.remove(straw));
             straws = [];
             
-            // 恢复上一个状态
+            // 恢复上一个状态（精确恢复每个吸管的位置和旋转）
             if (lastState && lastState.straws) {
                 lastState.straws.forEach(data => {
+                    // 创建吸管（不应用旋转）
                     const straw = createStraw(
                         new THREE.Vector3(data.position.x, data.position.y, data.position.z),
                         data.direction || 'horizontal',
-                        data.rotation.y
+                        0  // Y 轴旋转设为 0，后面统一设置
                     );
-                    straw.rotation.x = data.rotation.x;
-                    straw.rotation.z = data.rotation.z;
+                    
+                    // 精确恢复所有旋转值
+                    straw.rotation.set(data.rotation.x, data.rotation.y, data.rotation.z);
+                    
                     scene.add(straw);
                     straws.push(straw);
                 });

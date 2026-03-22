@@ -710,6 +710,7 @@
         let dragPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
         let dragOffset = new THREE.Vector3();
         let dragTouchId = null; // 拖拽吸管的触摸 ID
+        let dragStateSaved = false; // 标记拖动状态是否已保存
         
         // 智能校准相关
         const SNAP_THRESHOLD = 0.4; // 校准阈值（单位，球体中心距离）
@@ -1056,7 +1057,7 @@
             
             // 更新吸附状态
             snapTarget = nearestTarget;
-            isSnapped = (nearestTarget !== null && nearestDist < SNAP_THRESHOLD * 0.5);
+            isSnapped = (nearestTarget !== null && nearestDist < SNAP_ALIGN_THRESHOLD);
             
             // 更新高亮位置（高亮目标连接点）
             if (snapHighlight) {
@@ -1072,11 +1073,20 @@
             
             // 返回校准向量（选中吸管需要移动的方向和距离）
             if (nearestTarget && nearestSelectedJoint) {
+                // 只计算水平方向的偏移（XZ 平面），保持 Y 轴高度不变
+                const horizontalOffset = new THREE.Vector3(
+                    nearestTarget.x - nearestSelectedJoint.x,
+                    0,  // Y 轴保持为 0，不改变高度
+                    nearestTarget.z - nearestSelectedJoint.z
+                );
+                const horizontalDist = Math.sqrt(horizontalOffset.x * horizontalOffset.x + horizontalOffset.z * horizontalOffset.z);
+                
                 return {
                     target: nearestTarget,
                     currentJoint: nearestSelectedJoint,
                     distance: nearestDist,
-                    offset: nearestTarget.clone().sub(nearestSelectedJoint)
+                    horizontalDistance: horizontalDist,
+                    horizontalOffset: horizontalOffset
                 };
             }
             
@@ -1252,6 +1262,9 @@
                             intersection.y = STRAW_RADIUS;
                         }
                         
+                        // 保存操作前状态
+                        saveToUndoHistory();
+                        
                         const straw = createStraw(intersection, currentStrawDirection);
                         scene.add(straw);
                         straws.push(straw);
@@ -1393,16 +1406,24 @@
                             dragOffset.copy(intersection);
                         }
                         
-                        // 检测并应用智能校准
+                        // 拖动开始后第一次移动时保存状态
+                        if (!dragStateSaved) {
+                            saveToUndoHistory();
+                            dragStateSaved = true;
+                        }
+                        
+                        // 检测并应用智能校准（只在水平方向 XZ 平面）
                         const snapInfo = updateSnap();
-                        if (snapInfo) {
-                            if (snapInfo.distance < SNAP_ALIGN_THRESHOLD) {
-                                // 距离很近时，直接对齐（球体中心完全重叠）
-                                selectedStraw.position.add(snapInfo.offset);
-                            } else if (snapInfo.distance < SNAP_THRESHOLD) {
-                                // 距离较近时，轻微拉动提示
-                                const moveOffset = snapInfo.offset.clone().multiplyScalar(0.3);
-                                selectedStraw.position.add(moveOffset);
+                        if (snapInfo && snapInfo.horizontalDistance < SNAP_THRESHOLD) {
+                            if (snapInfo.horizontalDistance < SNAP_ALIGN_THRESHOLD) {
+                                // 距离很近时，只在水平方向对齐（保持 Y 轴高度）
+                                selectedStraw.position.x += snapInfo.horizontalOffset.x;
+                                selectedStraw.position.z += snapInfo.horizontalOffset.z;
+                            } else if (snapInfo.horizontalDistance < SNAP_THRESHOLD * 0.7) {
+                                // 距离较近时，轻微拉动提示（只在水平方向）
+                                const moveOffset = snapInfo.horizontalOffset.clone().multiplyScalar(0.3);
+                                selectedStraw.position.x += moveOffset.x;
+                                selectedStraw.position.z += moveOffset.z;
                             }
                         }
                         
@@ -1455,12 +1476,25 @@
                 dragOffset.copy(intersection);
             }
             
-            // 检测并应用智能校准（软性，可继续拖动）
+            // 拖动开始后第一次移动时保存状态
+            if (!dragStateSaved) {
+                saveToUndoHistory();
+                dragStateSaved = true;
+            }
+            
+            // 检测并应用智能校准（只在水平方向 XZ 平面）
             const snapInfo = updateSnap();
-            if (snapInfo && isSnapped) {
-                // 校准模式：将选中的连接点拉向目标连接点
-                const moveOffset = snapInfo.offset.clone().multiplyScalar(SNAP_STRENGTH);
-                selectedStraw.position.add(moveOffset);
+            if (snapInfo && snapInfo.horizontalDistance < SNAP_THRESHOLD) {
+                if (snapInfo.horizontalDistance < SNAP_ALIGN_THRESHOLD) {
+                    // 距离很近时，只在水平方向对齐（保持 Y 轴高度）
+                    selectedStraw.position.x += snapInfo.horizontalOffset.x;
+                    selectedStraw.position.z += snapInfo.horizontalOffset.z;
+                } else if (snapInfo.horizontalDistance < SNAP_THRESHOLD * 0.7) {
+                    // 距离较近时，轻微拉动提示（只在水平方向）
+                    const moveOffset = snapInfo.horizontalOffset.clone().multiplyScalar(0.3);
+                    selectedStraw.position.x += moveOffset.x;
+                    selectedStraw.position.z += moveOffset.z;
+                }
             }
             
             // 限制在网格范围内
@@ -1699,6 +1733,9 @@
             
             rotateLeftBtn.addEventListener('click', () => {
                 if (selectedStraw) {
+                    // 保存操作前状态
+                    saveToUndoHistory();
+                    
                     selectedStraw.rotation.y += Math.PI / 12;
                     showMessage('↩️', '向左旋转 15°');
                 }
@@ -1706,6 +1743,9 @@
             
             rotateRightBtn.addEventListener('click', () => {
                 if (selectedStraw) {
+                    // 保存操作前状态
+                    saveToUndoHistory();
+                    
                     selectedStraw.rotation.y -= Math.PI / 12;
                     showMessage('↪️', '向右旋转 15°');
                 }
@@ -1713,6 +1753,9 @@
             
             moveUpBtn.addEventListener('click', () => {
                 if (selectedStraw) {
+                    // 保存操作前状态
+                    saveToUndoHistory();
+                    
                     selectedStraw.position.y += 0.5;
                     selectedStraw.position.y = Math.min(GRID_SIZE, selectedStraw.position.y);
                     showMessage('⬆️', '升高 0.5 单位');
@@ -1721,6 +1764,9 @@
             
             moveDownBtn.addEventListener('click', () => {
                 if (selectedStraw) {
+                    // 保存操作前状态
+                    saveToUndoHistory();
+                    
                     selectedStraw.position.y -= 0.5;
                     selectedStraw.position.y = Math.max(STRAW_RADIUS, selectedStraw.position.y);
                     showMessage('⬇️', '降低 0.5 单位');

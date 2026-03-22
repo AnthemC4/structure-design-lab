@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>结构与设计 - 吸管搭建实验室 v20260322-3 修复版</title>
+    <title>结构与设计 - 吸管搭建实验室 v20260322-4 最终修复版</title>
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
@@ -623,7 +623,7 @@
                 <span>剩余材料：</span>
                 <div id="count-display">20</div>
             </div>
-            <div style="font-size: 18px; color: #666;">🏗️ 结构与设计 <span style="font-size: 12px; color: #999;">v20260322-3</span></div>
+            <div style="font-size: 18px; color: #666;">🏗️ 结构与设计 <span style="font-size: 12px; color: #999;">v20260322-4</span></div>
         </div>
         
         <!-- 方案切换栏 -->
@@ -734,9 +734,10 @@
         console.log(`STRAW_VISUAL_LENGTH: ${STRAW_VISUAL_LENGTH}`);
         console.log(`STRAW_RADIUS: ${STRAW_RADIUS}`);
         console.log(`JOINT_RADIUS: ${JOINT_RADIUS}`);
-        console.log(`STRAW_LENGTH: ${STRAW_LENGTH}`);
+        console.log(`STRAW_LENGTH (球心距): ${STRAW_LENGTH}`);
         console.log(`STRAW_DIAGONAL_BODY_LENGTH: ${STRAW_DIAGONAL_BODY_LENGTH}`);
-        console.log(`预期：STRAW_LENGTH + 2×JOINT_RADIUS = ${(STRAW_LENGTH + 2*JOINT_RADIUS).toFixed(3)} (应该=2.000)`);
+        console.log(`验证：STRAW_LENGTH + 2×JOINT_RADIUS = ${(STRAW_LENGTH + 2*JOINT_RADIUS).toFixed(3)} (应该=2.000)`);
+        console.log(`圆柱体长度 = STRAW_LENGTH - 2×JOINT_RADIUS = ${(STRAW_LENGTH - 2*JOINT_RADIUS).toFixed(3)}`);
         
         // 撤销历史
         const MAX_UNDO_STEPS = 10;

@@ -857,6 +857,9 @@
             // 根据方向选择吸管长度（球体中心之间的距离）
             const bodyLength = direction === 'diagonal' ? STRAW_DIAGONAL_BODY_LENGTH : STRAW_LENGTH;
             
+            // 圆柱体长度 = 球心距（圆柱体两端正好在球体中心处）
+            const cylinderLength = bodyLength;
+            
             // 计算总视觉长度（用于调试）
             const visualLength = bodyLength + 2 * JOINT_RADIUS;
             
@@ -867,7 +870,7 @@
             }
             
             // 吸管主体 - 默认垂直方向（圆柱默认是 Y 轴方向）
-            const geometry = new THREE.CylinderGeometry(STRAW_RADIUS, STRAW_RADIUS, bodyLength, 8);
+            const geometry = new THREE.CylinderGeometry(STRAW_RADIUS, STRAW_RADIUS, cylinderLength, 8);
             const material = new THREE.MeshLambertMaterial({ 
                 color: STRAW_COLOR,
                 transparent: true,

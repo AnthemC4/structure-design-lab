@@ -911,10 +911,12 @@
                 joint2.position.y = jointOffset;
             } else if (direction === 'diagonal') {
                 // 斜向 45 度：圆柱和球体都沿 45 度方向
+                // 圆柱体默认沿 Y 轴，旋转 45 度后指向 45 度方向
                 cylinder.rotation.z = Math.PI / 4;
-                // 球体沿 45 度线分布（和圆柱体方向一致）
-                const sin45 = Math.sqrt(2) / 2;
+                // 球体位置：沿 45 度线（和圆柱体方向一致）
+                // 45 度方向的单位向量是 (cos45, sin45)
                 const cos45 = Math.sqrt(2) / 2;
+                const sin45 = Math.sqrt(2) / 2;
                 joint1.position.x = -jointOffset * cos45;
                 joint1.position.y = -jointOffset * sin45;
                 joint2.position.x = jointOffset * cos45;

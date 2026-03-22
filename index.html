@@ -213,11 +213,13 @@
         #undo-btn {
             background: linear-gradient(135deg, #95a5a6, #7f8c8d);
             color: white;
+            pointer-events: none; /* 禁用时完全阻止点击 */
         }
         
         #undo-btn:not(:disabled) {
             background: linear-gradient(135deg, #3498db, #2980b9);
             box-shadow: 0 4px 15px rgba(52, 152, 219, 0.4);
+            pointer-events: auto;
         }
         
         #undo-btn:disabled {
@@ -1493,16 +1495,26 @@
         
         // 保存当前状态到撤销历史
         function saveToUndoHistory() {
+            // 深拷贝当前状态
             const state = {
                 straws: straws.map(straw => ({
-                    position: { x: straw.position.x, y: straw.position.y, z: straw.position.z },
-                    rotation: { x: straw.rotation.x, y: straw.rotation.y, z: straw.rotation.z },
+                    position: { 
+                        x: straw.position.x, 
+                        y: straw.position.y, 
+                        z: straw.position.z 
+                    },
+                    rotation: { 
+                        x: straw.rotation.x, 
+                        y: straw.rotation.y, 
+                        z: straw.rotation.z 
+                    },
                     direction: straw.userData.direction || 'horizontal'
                 })),
                 remainingStraws: remainingStraws
             };
             
-            undoHistory.push(state);
+            // 添加到历史栈
+            undoHistory.push(JSON.parse(JSON.stringify(state)));
             
             // 限制历史记录数量
             if (undoHistory.length > MAX_UNDO_STEPS) {
@@ -1514,28 +1526,36 @@
         
         // 撤销操作
         function undo() {
-            if (undoHistory.length === 0) return;
+            if (undoHistory.length === 0) {
+                console.log('撤销历史为空');
+                return;
+            }
             
+            console.log('撤销前历史长度:', undoHistory.length);
             const lastState = undoHistory.pop();
+            console.log('撤销后历史长度:', undoHistory.length);
             
             // 清空当前场景
             straws.forEach(straw => scene.remove(straw));
             straws = [];
             
             // 恢复上一个状态
-            lastState.straws.forEach(data => {
-                const straw = createStraw(
-                    new THREE.Vector3(data.position.x, data.position.y, data.position.z),
-                    data.direction || 'horizontal',
-                    data.rotation.y
-                );
-                straw.rotation.x = data.rotation.x;
-                straw.rotation.z = data.rotation.z;
-                scene.add(straw);
-                straws.push(straw);
-            });
+            if (lastState && lastState.straws) {
+                lastState.straws.forEach(data => {
+                    const straw = createStraw(
+                        new THREE.Vector3(data.position.x, data.position.y, data.position.z),
+                        data.direction || 'horizontal',
+                        data.rotation.y
+                    );
+                    straw.rotation.x = data.rotation.x;
+                    straw.rotation.z = data.rotation.z;
+                    scene.add(straw);
+                    straws.push(straw);
+                });
+                
+                remainingStraws = lastState.remainingStraws || 20;
+            }
             
-            remainingStraws = lastState.remainingStraws;
             updateCountDisplay();
             updateUndoButton();
             
@@ -1629,9 +1649,16 @@
             
             // 撤销按钮
             const undoBtn = document.getElementById('undo-btn');
-            undoBtn.addEventListener('click', () => {
-                undo();
-            });
+            if (undoBtn) {
+                undoBtn.addEventListener('click', () => {
+                    if (!undoBtn.disabled) {
+                        undo();
+                    }
+                });
+            }
+            
+            // 初始化撤销按钮状态
+            updateUndoButton();
             
             // 方向选择器
             const directionSelector = document.getElementById('direction-selector');

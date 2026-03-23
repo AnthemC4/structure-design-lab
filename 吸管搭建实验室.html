@@ -1,0 +1,1389 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>结构与设计 - 吸管搭建实验室</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Arial', sans-serif;
+            overflow: hidden;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            touch-action: none;
+        }
+        
+        #container {
+            width: 100vw;
+            height: 100vh;
+            position: relative;
+        }
+        
+        #canvas-container {
+            width: 100%;
+            height: 100%;
+        }
+        
+        #info-bar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            background: rgba(255, 255, 255, 0.95);
+            padding: 12px 20px;
+            padding-top: max(12px, env(safe-area-inset-top));
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            z-index: 1000;
+            -webkit-backdrop-filter: blur(10px);
+            backdrop-filter: blur(10px);
+        }
+        
+        #material-count {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 20px;
+            font-weight: bold;
+            color: #333;
+        }
+        
+        #straw-icon {
+            width: 40px;
+            height: 40px;
+            background: #4a90e2;
+            border-radius: 5px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        #straw-icon::before {
+            content: '▬';
+            color: white;
+            font-size: 24px;
+        }
+        
+        #count-display {
+            background: #4a90e2;
+            color: white;
+            padding: 8px 20px;
+            border-radius: 20px;
+            min-width: 80px;
+            text-align: center;
+        }
+        
+        #count-display.warning {
+            background: #f5a623;
+            animation: pulse 1s infinite;
+        }
+        
+        #count-display.empty {
+            background: #e74c3c;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+        
+        #toolbar {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: rgba(255, 255, 255, 0.95);
+            padding: 12px 15px;
+            padding-bottom: max(12px, env(safe-area-inset-bottom));
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            flex-wrap: wrap;
+            box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
+            z-index: 1000;
+            -webkit-backdrop-filter: blur(10px);
+            backdrop-filter: blur(10px);
+        }
+        
+        .tool-btn {
+            padding: 12px 20px;
+            font-size: 16px;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            white-space: nowrap;
+            -webkit-tap-highlight-color: transparent;
+        }
+        
+        .tool-btn:active {
+            transform: scale(0.95);
+        }
+        
+        #direction-selector {
+            position: fixed;
+            bottom: 80px;
+            bottom: max(80px, calc(80px + env(safe-area-inset-bottom)));
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(255, 255, 255, 0.95);
+            padding: 10px 15px;
+            border-radius: 15px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.2);
+            z-index: 999;
+            display: none;
+            gap: 10px;
+            -webkit-backdrop-filter: blur(10px);
+            backdrop-filter: blur(10px);
+        }
+        
+        #direction-selector.show {
+            display: flex !important;
+            animation: popIn 0.3s;
+        }
+        
+        .dir-btn {
+            padding: 10px 18px;
+            font-size: 15px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            background: white;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-weight: bold;
+        }
+        
+        .dir-btn:active {
+            transform: scale(0.95);
+        }
+        
+        .dir-btn.active {
+            border-color: #4a90e2;
+            background: #4a90e2;
+            color: white;
+        }
+        
+        #add-straw-btn {
+            background: linear-gradient(135deg, #4a90e2, #357abd);
+            color: white;
+            box-shadow: 0 4px 15px rgba(74, 144, 226, 0.4);
+        }
+        
+        #add-straw-btn.ready {
+            background: linear-gradient(135deg, #2ecc71, #27ae60);
+            animation: glow 1.5s infinite;
+        }
+        
+        @keyframes glow {
+            0%, 100% { box-shadow: 0 4px 15px rgba(46, 204, 113, 0.4); }
+            50% { box-shadow: 0 4px 25px rgba(46, 204, 113, 0.6); }
+        }
+        
+        #delete-btn {
+            background: linear-gradient(135deg, #e74c3c, #c0392b);
+            color: white;
+        }
+        
+        #save-btn {
+            background: linear-gradient(135deg, #27ae60, #229954);
+            color: white;
+        }
+        
+        #clear-btn {
+            background: linear-gradient(135deg, #95a5a6, #7f8c8d);
+            color: white;
+        }
+        
+        #undo-btn {
+            background: linear-gradient(135deg, #f39c12, #d68910);
+            color: white;
+        }
+        
+        #designs-bar {
+            position: fixed;
+            top: 70px;
+            right: 15px;
+            background: rgba(255, 255, 255, 0.95);
+            padding: 12px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.15);
+            z-index: 1000;
+            -webkit-backdrop-filter: blur(10px);
+            backdrop-filter: blur(10px);
+        }
+        
+        #designs-bar h3 {
+            font-size: 14px;
+            margin-bottom: 8px;
+            color: #666;
+        }
+        
+        .design-slot {
+            padding: 8px 15px;
+            margin: 5px 0;
+            background: #f8f9fa;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 13px;
+            transition: all 0.3s;
+            border: 2px solid transparent;
+        }
+        
+        .design-slot:hover {
+            background: #e9ecef;
+        }
+        
+        .design-slot.active {
+            border-color: #4a90e2;
+            background: #e3f2fd;
+        }
+        
+        .design-slot.empty {
+            color: #999;
+            font-style: italic;
+        }
+        
+        #direction-indicator {
+            position: fixed;
+            top: 70px;
+            right: 15px;
+            width: 60px;
+            height: 60px;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.15);
+            z-index: 1000;
+            -webkit-backdrop-filter: blur(10px);
+            backdrop-filter: blur(10px);
+        }
+        
+        #direction-arrow {
+            font-size: 40px;
+            color: #4a90e2;
+            transition: transform 0.3s;
+        }
+        
+        #message {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) scale(0.9);
+            background: rgba(255, 255, 255, 0.98);
+            padding: 30px 50px;
+            border-radius: 20px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+            z-index: 2000;
+            opacity: 0;
+            pointer-events: none;
+            transition: all 0.3s;
+            text-align: center;
+            -webkit-backdrop-filter: blur(10px);
+            backdrop-filter: blur(10px);
+        }
+        
+        #message.show {
+            opacity: 1;
+            transform: translate(-50%, -50%) scale(1);
+            pointer-events: auto;
+        }
+        
+        #message h2 {
+            font-size: 48px;
+            margin-bottom: 15px;
+        }
+        
+        #message p {
+            font-size: 16px;
+            color: #666;
+            line-height: 1.6;
+            white-space: pre-line;
+        }
+        
+        #edit-mode-hint,
+        #delete-mode-hint {
+            position: fixed;
+            top: 70px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(243, 156, 18, 0.95);
+            color: white;
+            padding: 10px 25px;
+            border-radius: 20px;
+            font-size: 15px;
+            font-weight: bold;
+            box-shadow: 0 4px 15px rgba(243, 156, 18, 0.4);
+            z-index: 1001;
+            display: none;
+            -webkit-backdrop-filter: blur(10px);
+            backdrop-filter: blur(10px);
+        }
+        
+        #edit-mode-hint.show,
+        #delete-mode-hint.show {
+            display: block;
+            animation: popIn 0.3s;
+        }
+        
+        @keyframes popIn {
+            from { transform: translateX(-50%) scale(0.8); opacity: 0; }
+            to { transform: translateX(-50%) scale(1); opacity: 1; }
+        }
+        
+        #edit-toolbar {
+            position: fixed;
+            bottom: 80px;
+            bottom: max(80px, calc(80px + env(safe-area-inset-bottom)));
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(255, 255, 255, 0.95);
+            padding: 12px 20px;
+            border-radius: 15px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.2);
+            z-index: 1001;
+            display: none;
+            gap: 10px;
+            -webkit-backdrop-filter: blur(10px);
+            backdrop-filter: blur(10px);
+        }
+        
+        #edit-toolbar.show {
+            display: flex;
+            animation: popIn 0.3s;
+        }
+        
+        .edit-btn {
+            padding: 10px 20px;
+            font-size: 16px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-weight: bold;
+        }
+        
+        .edit-btn:active {
+            transform: scale(0.95);
+        }
+        
+        #rotate-left-btn {
+            background: linear-gradient(135deg, #9b59b6, #8e44ad);
+            color: white;
+        }
+        
+        #rotate-right-btn {
+            background: linear-gradient(135deg, #9b59b6, #8e44ad);
+            color: white;
+        }
+        
+        #done-edit-btn {
+            background: linear-gradient(135deg, #2ecc71, #27ae60);
+            color: white;
+        }
+        
+        @keyframes shake {
+            0%, 100% { transform: translateX(-50%) rotate(0deg); }
+            25% { transform: translateX(-50%) rotate(-5deg); }
+            75% { transform: translateX(-50%) rotate(5deg); }
+        }
+        
+        #save-success {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(46, 204, 113, 0.95);
+            color: white;
+            padding: 30px 50px;
+            border-radius: 15px;
+            font-size: 24px;
+            font-weight: bold;
+            z-index: 300;
+            display: none;
+        }
+        
+        #save-success.show {
+            display: block;
+            animation: successPop 0.5s;
+        }
+        
+        @keyframes successPop {
+            from { transform: translate(-50%, -50%) scale(0.5); opacity: 0; }
+            to { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+        }
+        
+        @media (max-width: 768px) {
+            #info-bar {
+                padding: 10px 15px;
+                flex-direction: column;
+                gap: 8px;
+            }
+            
+            #material-count {
+                font-size: 16px;
+            }
+            
+            #straw-icon {
+                width: 32px;
+                height: 32px;
+            }
+            
+            #straw-icon::before {
+                font-size: 20px;
+            }
+            
+            #count-display {
+                padding: 6px 15px;
+                font-size: 16px;
+            }
+            
+            .tool-btn {
+                padding: 10px 16px;
+                font-size: 14px;
+            }
+            
+            #designs-bar {
+                top: 120px;
+                right: 10px;
+                max-width: 160px;
+                padding: 10px;
+            }
+            
+            #designs-bar h3 {
+                font-size: 14px;
+            }
+            
+            .design-slot {
+                padding: 8px 12px;
+                font-size: 13px;
+            }
+            
+            #direction-indicator {
+                top: 130px;
+                right: 10px;
+                width: 50px;
+                height: 50px;
+            }
+            
+            #direction-selector {
+                bottom: 70px;
+                padding: 8px 12px;
+            }
+            
+            .dir-btn {
+                padding: 8px 14px;
+                font-size: 13px;
+            }
+            
+            #direction-arrow {
+                font-size: 32px;
+            }
+            
+            #delete-mode-hint,
+            #edit-mode-hint {
+                top: 100px;
+                font-size: 14px;
+                padding: 8px 20px;
+            }
+            
+            #edit-toolbar {
+                bottom: 90px;
+                padding: 10px 15px;
+                gap: 8px;
+            }
+            
+            .edit-btn {
+                padding: 8px 12px;
+                font-size: 13px;
+            }
+            
+            #message {
+                padding: 20px 30px;
+                max-width: 80%;
+            }
+            
+            #message h2 {
+                font-size: 32px;
+            }
+            
+            #message p {
+                font-size: 14px;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            #toolbar {
+                padding: 8px 10px;
+                gap: 6px;
+            }
+            
+            .tool-btn {
+                padding: 8px 12px;
+                font-size: 13px;
+                flex: 1 1 auto;
+                justify-content: center;
+            }
+            
+            #info-bar > div:last-child {
+                font-size: 16px !important;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="container">
+        <div id="canvas-container"></div>
+        
+        <!-- 顶部信息栏 -->
+        <div id="info-bar">
+            <div id="material-count">
+                <div id="straw-icon"></div>
+                <div id="count-display">20</div>
+            </div>
+            <div>结构与设计 - 吸管搭建实验室</div>
+        </div>
+        
+        <!-- 设计槽位 -->
+        <div id="designs-bar">
+            <h3>💾 设计槽位</h3>
+            <div class="design-slot empty" data-index="0">方案 1（空）</div>
+            <div class="design-slot empty" data-index="1">方案 2（空）</div>
+            <div class="design-slot empty" data-index="2">方案 3（空）</div>
+            <div class="design-slot empty" data-index="3">方案 4（空）</div>
+            <div class="design-slot empty" data-index="4">方案 5（空）</div>
+        </div>
+        
+        <!-- 方向指示器 -->
+        <div id="direction-indicator">
+            <div id="direction-arrow">➤</div>
+        </div>
+        
+        <!-- 方向选择器 -->
+        <div id="direction-selector">
+            <button class="dir-btn active" data-dir="horizontal">水平</button>
+            <button class="dir-btn" data-dir="vertical">垂直</button>
+            <button class="dir-btn" data-dir="diagonal">斜向 45°</button>
+        </div>
+        
+        <!-- 底部工具栏 -->
+        <div id="toolbar">
+            <button id="add-straw-btn" class="tool-btn">➕ 添加吸管</button>
+            <button id="delete-btn" class="tool-btn">🗑️ 删除模式</button>
+            <button id="clear-btn" class="tool-btn">🔄 清空</button>
+            <button id="save-btn" class="tool-btn">💾 保存设计</button>
+            <button id="undo-btn" class="tool-btn">↩️ 撤销</button>
+        </div>
+        
+        <!-- 编辑模式提示 -->
+        <div id="edit-mode-hint">✏️ 编辑模式 - 选中吸管可旋转</div>
+        <div id="delete-mode-hint">🗑️ 删除模式 - 点击吸管删除</div>
+        
+        <!-- 编辑工具栏 -->
+        <div id="edit-toolbar">
+            <button id="rotate-left-btn" class="edit-btn">↺ 左旋 45°</button>
+            <button id="rotate-right-btn" class="edit-btn">↻ 右旋 45°</button>
+            <button id="done-edit-btn" class="edit-btn">✓ 完成</button>
+        </div>
+        
+        <!-- 消息提示 -->
+        <div id="message">
+            <h2 id="message-title">🎉</h2>
+            <p id="message-content">欢迎使用吸管搭建实验室！</p>
+        </div>
+        
+        <!-- 保存成功动画 -->
+        <div id="save-success">💾 保存成功！</div>
+    </div>
+
+    <script>
+        // ========== 全局变量 ==========
+        let scene, camera, renderer, controls;
+        let straws = [];
+        let remainingStraws = 20;
+        let selectedStraw = null;
+        let isDeleteMode = false;
+        let isEditMode = false;
+        let currentDirection = 'horizontal';
+        let designs = [null, null, null, null, null];
+        let currentDesignIndex = 0;
+        let undoHistory = [];
+        let snapHighlight = null;
+        let snapTarget = null;
+        let isDragging = false;
+        let dragTouchId = null;
+        
+        // 常量定义
+        const GRID_SIZE = 12;
+        const STRAW_RADIUS = 0.15;
+        const STRAW_LENGTH = 3;
+        const STRAW_DIAGONAL_BODY_LENGTH = Math.sqrt(2) * STRAW_LENGTH;
+        const JOINT_RADIUS = 0.25;
+        const STRAW_COLOR = 0x4a90e2;
+        const STRAW_SELECTED_COLOR = 0xe74c3c;
+        const GRID_COLOR = 0x2d3748;
+        const PLANE_COLOR = 0x1a202c;
+        
+        // ========== 场景初始化 ==========
+        function initScene() {
+            scene = new THREE.Scene();
+            
+            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+            camera.position.set(8, 10, 8);
+            camera.lookAt(0, 0, 0);
+            
+            renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.shadowMap.enabled = true;
+            document.getElementById('canvas-container').appendChild(renderer.domElement);
+            
+            controls = new THREE.OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true;
+            controls.dampingFactor = 0.05;
+            controls.minDistance = 5;
+            controls.maxDistance = 30;
+            controls.maxPolarAngle = Math.PI / 2.2;
+            
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+            scene.add(ambientLight);
+            
+            const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+            directionalLight.position.set(10, 15, 10);
+            directionalLight.castShadow = true;
+            scene.add(directionalLight);
+            
+            createGrid();
+            addDirectionArrow();
+            
+            window.addEventListener('resize', onWindowResize);
+            renderer.domElement.addEventListener('click', onCanvasClick);
+            renderer.domElement.addEventListener('touchend', onCanvasClick, { passive: false });
+            renderer.domElement.addEventListener('touchstart', onTouchStart, { passive: false });
+            
+            animate();
+            
+            window.addEventListener('mousemove', onMouseMove);
+            window.addEventListener('mouseup', onMouseUp);
+            window.addEventListener('touchmove', onTouchMove, { passive: false });
+            window.addEventListener('touchend', onMouseUp);
+        }
+        
+        function addDirectionArrow() {
+            const arrowGroup = new THREE.Group();
+            const shaftGeometry = new THREE.CylinderGeometry(0.1, 0.1, 2, 8);
+            const shaftMaterial = new THREE.MeshLambertMaterial({ color: 0xe74c3c });
+            const shaft = new THREE.Mesh(shaftGeometry, shaftMaterial);
+            shaft.position.y = 1;
+            arrowGroup.add(shaft);
+            
+            const coneGeometry = new THREE.ConeGeometry(0.3, 0.8, 8);
+            const coneMaterial = new THREE.MeshLambertMaterial({ color: 0xe74c3c });
+            const cone = new THREE.Mesh(coneGeometry, coneMaterial);
+            cone.position.y = 2.4;
+            arrowGroup.add(cone);
+            
+            arrowGroup.position.set(GRID_SIZE/2 - 2, 0, GRID_SIZE/2 - 2);
+            scene.add(arrowGroup);
+            
+            const canvas = document.createElement('canvas');
+            canvas.width = 256;
+            canvas.height = 128;
+            const ctx = canvas.getContext('2d');
+            ctx.fillStyle = '#e74c3c';
+            ctx.font = 'bold 48px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText('上', 128, 80);
+            
+            const texture = new THREE.CanvasTexture(canvas);
+            const spriteMaterial = new THREE.SpriteMaterial({ map: texture });
+            const sprite = new THREE.Sprite(spriteMaterial);
+            sprite.position.set(GRID_SIZE/2 - 2, 3, GRID_SIZE/2 - 2);
+            sprite.scale.set(2, 1, 1);
+            scene.add(sprite);
+        }
+        
+        function createGrid() {
+            const gridGeometry = new THREE.PlaneGeometry(GRID_SIZE, GRID_SIZE, GRID_SIZE, GRID_SIZE);
+            const gridMaterial = new THREE.MeshBasicMaterial({ 
+                color: GRID_COLOR, 
+                wireframe: true,
+                transparent: true,
+                opacity: 0.4
+            });
+            const grid = new THREE.Mesh(gridGeometry, gridMaterial);
+            grid.rotation.x = -Math.PI / 2;
+            scene.add(grid);
+            
+            const planeGeometry = new THREE.PlaneGeometry(GRID_SIZE, GRID_SIZE);
+            const planeMaterial = new THREE.MeshStandardMaterial({ 
+                color: PLANE_COLOR,
+                transparent: true,
+                opacity: 0.3,
+                side: THREE.DoubleSide
+            });
+            const plane = new THREE.Mesh(planeGeometry, planeMaterial);
+            plane.rotation.x = -Math.PI / 2;
+            plane.position.y = -0.01;
+            plane.receiveShadow = true;
+            scene.add(plane);
+        }
+        
+        function createStraw(position, direction = 'horizontal', rotationY = 0) {
+            const group = new THREE.Group();
+            const bodyLength = direction === 'diagonal' ? STRAW_DIAGONAL_BODY_LENGTH : STRAW_LENGTH;
+            const cylinderLength = bodyLength - 2 * JOINT_RADIUS;
+            
+            const strawMaterial = new THREE.MeshLambertMaterial({ 
+                color: STRAW_COLOR,
+                transparent: true,
+                opacity: 0.95
+            });
+            
+            const jointMaterial = new THREE.MeshLambertMaterial({ 
+                color: 0x5dade2,
+                transparent: true,
+                opacity: 0.95
+            });
+            
+            const geometry = new THREE.CylinderGeometry(STRAW_RADIUS, STRAW_RADIUS, cylinderLength, 12);
+            const cylinder = new THREE.Mesh(geometry, strawMaterial);
+            cylinder.castShadow = true;
+            cylinder.userData.isStrawBody = true;
+            
+            const jointGeometry = new THREE.SphereGeometry(JOINT_RADIUS * 0.95, 12, 12);
+            const joint1 = new THREE.Mesh(jointGeometry, jointMaterial);
+            const joint2 = new THREE.Mesh(jointGeometry, jointMaterial);
+            joint1.castShadow = true;
+            joint2.castShadow = true;
+            
+            const jointOffset = cylinderLength / 2 + JOINT_RADIUS * 0.95;
+            
+            if (direction === 'horizontal') {
+                cylinder.rotation.z = Math.PI / 2;
+                joint1.position.x = -jointOffset;
+                joint2.position.x = jointOffset;
+            } else if (direction === 'vertical') {
+                joint1.position.y = -jointOffset;
+                joint2.position.y = jointOffset;
+            } else if (direction === 'diagonal') {
+                cylinder.rotation.z = Math.PI / 4;
+                const sin45 = Math.sqrt(2) / 2;
+                const cos45 = Math.sqrt(2) / 2;
+                joint1.position.x = -jointOffset * cos45;
+                joint1.position.y = -jointOffset * sin45;
+                joint2.position.x = jointOffset * cos45;
+                joint2.position.y = jointOffset * sin45;
+            }
+            
+            group.add(cylinder);
+            group.add(joint1);
+            group.add(joint2);
+            
+            group.position.copy(position);
+            group.rotation.y = rotationY;
+            
+            group.userData.isStraw = true;
+            group.userData.isSelected = false;
+            group.userData.direction = direction;
+            
+            return group;
+        }
+        
+        function selectStraw(straw) {
+            if (selectedStraw === straw) return;
+            
+            if (selectedStraw) {
+                deselectStraw();
+            }
+            
+            selectedStraw = straw;
+            straw.userData.isSelected = true;
+            
+            const body = straw.children.find(c => c.userData.isStrawBody);
+            if (body) {
+                body.material.color.setHex(STRAW_SELECTED_COLOR);
+            }
+            
+            document.getElementById('edit-mode-hint').classList.add('show');
+            document.getElementById('edit-toolbar').classList.add('show');
+            isEditMode = true;
+            controls.enabled = true;
+            
+            createSnapHighlight();
+        }
+        
+        function deselectStraw() {
+            if (!selectedStraw) return;
+            
+            selectedStraw.userData.isSelected = false;
+            
+            const body = selectedStraw.children.find(c => c.userData.isStrawBody);
+            if (body) {
+                body.material.color.setHex(STRAW_COLOR);
+            }
+            
+            selectedStraw = null;
+            
+            document.getElementById('edit-mode-hint').classList.remove('show');
+            document.getElementById('edit-toolbar').classList.remove('show');
+            isEditMode = false;
+            isDragging = false;
+            dragTouchId = null;
+            snapTarget = null;
+            
+            if (snapHighlight) {
+                scene.remove(snapHighlight);
+                snapHighlight = null;
+            }
+            
+            controls.enabled = true;
+        }
+        
+        function createSnapHighlight() {
+            if (snapHighlight) return;
+            
+            const geometry = new THREE.RingGeometry(0.25, 0.35, 16);
+            const material = new THREE.MeshBasicMaterial({ 
+                color: 0x2ecc71,
+                transparent: true,
+                opacity: 0.8,
+                side: THREE.DoubleSide
+            });
+            snapHighlight = new THREE.Mesh(geometry, material);
+            snapHighlight.rotation.x = -Math.PI / 2;
+            scene.add(snapHighlight);
+        }
+        
+        function getStrawJointPositions(straw) {
+            const direction = straw.userData.direction || 'horizontal';
+            const halfLen = direction === 'diagonal' ? STRAW_DIAGONAL_BODY_LENGTH / 2 : STRAW_LENGTH / 2;
+            const rotationY = straw.rotation.y;
+            const joints = [];
+            
+            if (direction === 'horizontal') {
+                const cosR = Math.cos(rotationY);
+                const sinR = Math.sin(rotationY);
+                joints.push(
+                    new THREE.Vector3(straw.position.x - halfLen * cosR, straw.position.y, straw.position.z - halfLen * sinR),
+                    new THREE.Vector3(straw.position.x + halfLen * cosR, straw.position.y, straw.position.z + halfLen * sinR)
+                );
+            } else if (direction === 'vertical') {
+                joints.push(
+                    new THREE.Vector3(straw.position.x, straw.position.y - halfLen, straw.position.z),
+                    new THREE.Vector3(straw.position.x, straw.position.y + halfLen, straw.position.z)
+                );
+            } else if (direction === 'diagonal') {
+                const sin45 = Math.sqrt(2) / 2;
+                const cos45 = Math.sqrt(2) / 2;
+                const cosR = Math.cos(rotationY);
+                const sinR = Math.sin(rotationY);
+                const j1x = -halfLen * sin45;
+                const j1y = -halfLen * cos45;
+                const j2x = halfLen * sin45;
+                const j2y = halfLen * cos45;
+                
+                joints.push(
+                    new THREE.Vector3(
+                        straw.position.x + j1x * cosR - j1y * sinR,
+                        straw.position.y,
+                        straw.position.z + j1x * sinR + j1y * cosR
+                    ),
+                    new THREE.Vector3(
+                        straw.position.x + j2x * cosR - j2y * sinR,
+                        straw.position.y,
+                        straw.position.z + j2x * sinR + j2y * cosR
+                    )
+                );
+            }
+            
+            return joints;
+        }
+        
+        function findSnapTarget(position) {
+            const threshold = 0.5;
+            let closest = null;
+            let closestDist = threshold;
+            
+            straws.forEach(straw => {
+                if (straw === selectedStraw) return;
+                
+                const joints = getStrawJointPositions(straw);
+                joints.forEach(joint => {
+                    const dist = position.distanceTo(joint);
+                    if (dist < closestDist) {
+                        closestDist = dist;
+                        closest = joint.clone();
+                    }
+                });
+            });
+            
+            return closest;
+        }
+        
+        function setupToolbar() {
+            const addBtn = document.getElementById('add-straw-btn');
+            const deleteBtn = document.getElementById('delete-btn');
+            const clearBtn = document.getElementById('clear-btn');
+            const saveBtn = document.getElementById('save-btn');
+            const undoBtn = document.getElementById('undo-btn');
+            
+            addBtn.onclick = () => toggleDirectionSelector();
+            deleteBtn.onclick = toggleDeleteMode;
+            clearBtn.onclick = clearAll;
+            saveBtn.onclick = saveCurrentDesign;
+            undoBtn.onclick = undo;
+            
+            const dirBtns = document.querySelectorAll('.dir-btn');
+            dirBtns.forEach(btn => {
+                btn.onclick = () => {
+                    dirBtns.forEach(b => b.classList.remove('active'));
+                    btn.classList.add('active');
+                    currentDirection = btn.dataset.dir;
+                    updateDirectionIndicator();
+                };
+            });
+            
+            document.getElementById('rotate-left-btn').onclick = () => rotateSelected(-Math.PI / 4);
+            document.getElementById('rotate-right-btn').onclick = () => rotateSelected(Math.PI / 4);
+            document.getElementById('done-edit-btn').onclick = deselectStraw;
+        }
+        
+        function toggleDirectionSelector() {
+            if (remainingStraws <= 0) {
+                showMessage('⚠️', '吸管已用完！\n删除一些吸管或清空后重试');
+                return;
+            }
+            
+            const selector = document.getElementById('direction-selector');
+            selector.classList.toggle('show');
+            
+            if (selector.classList.contains('show')) {
+                addBtnReady();
+            } else {
+                addStraw();
+            }
+        }
+        
+        function addBtnReady() {
+            const btn = document.getElementById('add-straw-btn');
+            btn.classList.add('ready');
+            setTimeout(() => {
+                btn.classList.remove('ready');
+            }, 500);
+        }
+        
+        function addStraw() {
+            if (remainingStraws <= 0) {
+                showMessage('⚠️', '吸管已用完！');
+                return;
+            }
+            
+            const position = new THREE.Vector3(0, 0.5, 0);
+            const straw = createStraw(position, currentDirection);
+            scene.add(straw);
+            straws.push(straw);
+            
+            remainingStraws--;
+            updateCountDisplay();
+            saveToUndoHistory();
+            
+            showMessage('✅', `已添加${currentDirection === 'horizontal' ? '水平' : currentDirection === 'vertical' ? '垂直' : '斜向'}吸管`);
+        }
+        
+        function toggleDeleteMode() {
+            isDeleteMode = !isDeleteMode;
+            
+            if (isDeleteMode) {
+                document.getElementById('delete-mode-hint').classList.add('show');
+                document.getElementById('delete-btn').style.background = 'linear-gradient(135deg, #c0392b, #a93226)';
+            } else {
+                document.getElementById('delete-mode-hint').classList.remove('show');
+                document.getElementById('delete-btn').style.background = '';
+            }
+            
+            deselectStraw();
+        }
+        
+        function clearAll() {
+            if (straws.length === 0) {
+                showMessage('ℹ️', '没有可清空的内容');
+                return;
+            }
+            
+            if (!confirm('确定清空所有吸管吗？\n\n此操作无法撤销')) {
+                return;
+            }
+            
+            straws.forEach(straw => scene.remove(straw));
+            straws = [];
+            remainingStraws = 20;
+            updateCountDisplay();
+            clearUndoHistory();
+            
+            showMessage('✅', '已清空所有吸管');
+        }
+        
+        function saveCurrentDesign() {
+            if (straws.length === 0) {
+                showMessage('⚠️', '当前没有设计可保存');
+                return;
+            }
+            
+            const designData = straws.map(straw => ({
+                position: { x: straw.position.x, y: straw.position.y, z: straw.position.z },
+                direction: straw.userData.direction,
+                rotation: { x: straw.rotation.x, y: straw.rotation.y, z: straw.rotation.z }
+            }));
+            
+            designs[currentDesignIndex] = designData;
+            
+            updateDesignsUI();
+            
+            const successDiv = document.getElementById('save-success');
+            successDiv.classList.add('show');
+            setTimeout(() => {
+                successDiv.classList.remove('show');
+            }, 1500);
+            
+            showMessage('💾', `设计已保存到方案 ${currentDesignIndex + 1}`);
+        }
+        
+        function updateDesignsUI() {
+            const slots = document.querySelectorAll('.design-slot');
+            slots.forEach((slot, index) => {
+                const isActive = (index === currentDesignIndex);
+                
+                if (designs[index]) {
+                    slot.classList.remove('empty');
+                    slot.textContent = `方案 ${index + 1}（${designs[index].length}根）`;
+                    slot.classList.toggle('active', isActive);
+                } else {
+                    slot.classList.add('empty');
+                    slot.textContent = `方案 ${index + 1}（空）`;
+                    slot.classList.toggle('active', isActive);
+                }
+                
+                slot.onclick = () => loadDesign(index);
+            });
+        }
+        
+        function loadDesign(index) {
+            deselectStraw();
+            
+            if (!designs[index]) {
+                if (straws.length > 0) {
+                    showMessage('ℹ️', `已切换到方案 ${index + 1}（空）\n\n当前设计未保存，请记得先保存再切换其他方案`, 3000);
+                } else {
+                    showMessage('✅', `已切换到方案 ${index + 1}（空）`, 3000);
+                }
+                currentDesignIndex = index;
+                updateDesignsUI();
+                clearUndoHistory();
+                return;
+            }
+            
+            if (straws.length > 0) {
+                if (!confirm('切换方案将清空当前未保存的设计，确定继续吗？\n\n当前设计需要先保存，否则会丢失。')) {
+                    return;
+                }
+            }
+            
+            straws.forEach(straw => scene.remove(straw));
+            straws = [];
+            
+            designs[index].forEach(data => {
+                const straw = createStraw(
+                    new THREE.Vector3(data.position.x, data.position.y, data.position.z),
+                    data.direction || 'horizontal',
+                    data.rotation.y
+                );
+                straw.rotation.x = data.rotation.x;
+                straw.rotation.y = data.rotation.y;
+                straw.rotation.z = data.rotation.z;
+                scene.add(straw);
+                straws.push(straw);
+            });
+            
+            remainingStraws = 20 - straws.length;
+            updateCountDisplay();
+            currentDesignIndex = index;
+            updateDesignsUI();
+            clearUndoHistory();
+            
+            showMessage('✅', `已加载方案 ${index + 1}`);
+        }
+        
+        function showMessage(icon, content, duration = 2000) {
+            const msgDiv = document.getElementById('message');
+            const title = document.getElementById('message-title');
+            const text = document.getElementById('message-content');
+            
+            title.textContent = icon;
+            text.textContent = content;
+            msgDiv.classList.add('show');
+            
+            setTimeout(() => {
+                msgDiv.classList.remove('show');
+            }, duration);
+        }
+        
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+        
+        function animate() {
+            requestAnimationFrame(animate);
+            controls.update();
+            renderer.render(scene, camera);
+        }
+        
+        function updateCountDisplay() {
+            const display = document.getElementById('count-display');
+            display.textContent = remainingStraws;
+            
+            display.classList.remove('warning', 'empty');
+            if (remainingStraws <= 5) {
+                display.classList.add('warning');
+            }
+            if (remainingStraws === 0) {
+                display.classList.add('empty');
+            }
+        }
+        
+        function updateDirectionIndicator() {
+            const arrow = document.getElementById('direction-arrow');
+            if (currentDirection === 'horizontal') {
+                arrow.textContent = '➤';
+                arrow.style.transform = 'rotate(0deg)';
+            } else if (currentDirection === 'vertical') {
+                arrow.textContent = '➤';
+                arrow.style.transform = 'rotate(-90deg)';
+            } else if (currentDirection === 'diagonal') {
+                arrow.textContent = '➤';
+                arrow.style.transform = 'rotate(-45deg)';
+            }
+        }
+        
+        function onCanvasClick(event) {
+            if (isEditMode || isDragging) return;
+            
+            event.preventDefault();
+            
+            const rect = renderer.domElement.getBoundingClientRect();
+            const mouse = new THREE.Vector2();
+            
+            if (event.changedTouches) {
+                mouse.x = ((event.changedTouches[0].clientX - rect.left) / rect.width) * 2 - 1;
+                mouse.y = -((event.changedTouches[0].clientY - rect.top) / rect.height) * 2 + 1;
+            } else {
+                mouse.x = (event.clientX / rect.width) * 2 - 1;
+                mouse.y = -(event.clientY / rect.height) * 2 + 1;
+            }
+            
+            const raycaster = new THREE.Raycaster();
+            raycaster.setFromCamera(mouse, camera);
+            
+            const strawBodies = straws.map(s => s.children.find(c => c.userData.isStrawBody)).filter(Boolean);
+            const intersects = raycaster.intersectObjects(strawBodies);
+            
+            if (intersects.length > 0) {
+                const clickedBody = intersects[0].object;
+                const clickedStraw = straws.find(s => s.children.includes(clickedBody));
+                
+                if (clickedStraw) {
+                    if (isDeleteMode) {
+                        deleteStraw(clickedStraw);
+                    } else {
+                        selectStraw(clickedStraw);
+                    }
+                }
+            }
+        }
+        
+        function onTouchStart(event) {
+            if (event.touches.length === 1 && !isEditMode) {
+                dragTouchId = event.touches[0].identifier;
+            }
+        }
+        
+        function onTouchMove(event) {
+            if (!selectedStraw || dragTouchId === null) return;
+            
+            event.preventDefault();
+            
+            const touch = Array.from(event.touches).find(t => t.identifier === dragTouchId);
+            if (!touch) return;
+            
+            const rect = renderer.domElement.getBoundingClientRect();
+            const mouse = new THREE.Vector2();
+            mouse.x = ((touch.clientX - rect.left) / rect.width) * 2 - 1;
+            mouse.y = -((touch.clientY - rect.top) / rect.height) * 2 + 1;
+            
+            const raycaster = new THREE.Raycaster();
+            raycaster.setFromCamera(mouse, camera);
+            
+            const plane = new THREE.Plane(new THREE.Vector3(0, 1, 0), -0.5);
+            const target = new THREE.Vector3();
+            raycaster.ray.intersectPlane(plane, target);
+            
+            if (target) {
+                selectedStraw.position.x = target.x;
+                selectedStraw.position.z = target.z;
+                
+                const snap = findSnapTarget(selectedStraw.position);
+                if (snap) {
+                    snapTarget = snap;
+                    if (snapHighlight) {
+                        snapHighlight.position.set(snap.x, 0.02, snap.z);
+                    }
+                } else {
+                    snapTarget = null;
+                }
+            }
+        }
+        
+        function onMouseMove(event) {
+            if (!selectedStraw || !isDragging) return;
+            
+            const rect = renderer.domElement.getBoundingClientRect();
+            const mouse = new THREE.Vector2();
+            mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+            mouse.y = -(event.clientY - rect.top) / rect.height) * 2 + 1;
+            
+            const raycaster = new THREE.Raycaster();
+            raycaster.setFromCamera(mouse, camera);
+            
+            const plane = new THREE.Plane(new THREE.Vector3(0, 1, 0), -0.5);
+            const target = new THREE.Vector3();
+            raycaster.ray.intersectPlane(plane, target);
+            
+            if (target) {
+                selectedStraw.position.x = target.x;
+                selectedStraw.position.z = target.z;
+                
+                const snap = findSnapTarget(selectedStraw.position);
+                if (snap) {
+                    snapTarget = snap;
+                    if (snapHighlight) {
+                        snapHighlight.position.set(snap.x, 0.02, snap.z);
+                    }
+                } else {
+                    snapTarget = null;
+                }
+            }
+        }
+        
+        function onMouseUp() {
+            if (!selectedStraw) return;
+            
+            if (snapTarget) {
+                const direction = selectedStraw.userData.direction || 'horizontal';
+                const halfLen = direction === 'diagonal' ? STRAW_DIAGONAL_BODY_LENGTH / 2 : STRAW_LENGTH / 2;
+                const offset = new THREE.Vector3(halfLen, 0, 0);
+                offset.applyAxisAngle(new THREE.Vector3(0, 1, 0), selectedStraw.rotation.y);
+                
+                selectedStraw.position.copy(snapTarget).sub(offset);
+                
+                showMessage('', '已吸附到连接点！');
+            }
+            
+            isDragging = false;
+            dragTouchId = null;
+            saveToUndoHistory();
+        }
+        
+        function deleteStraw(straw) {
+            scene.remove(straw);
+            straws = straws.filter(s => s !== straw);
+            remainingStraws++;
+            updateCountDisplay();
+            saveToUndoHistory();
+            
+            showMessage('🗑️', '已删除吸管');
+        }
+        
+        function rotateSelected(angle) {
+            if (!selectedStraw) return;
+            
+            selectedStraw.rotation.y += angle;
+            saveToUndoHistory();
+            
+            const direction = selectedStraw.userData.direction;
+            showMessage('↻', `已${angle > 0 ? '右' : '左'}旋转 45°\n方向：${direction === 'horizontal' ? '水平' : direction === 'vertical' ? '垂直' : '斜向'}`);
+        }
+        
+        function saveToUndoHistory() {
+            if (undoHistory.length >= 10) {
+                undoHistory.shift();
+            }
+            
+            const currentState = straws.map(straw => ({
+                position: { x: straw.position.x, y: straw.position.y, z: straw.position.z },
+                direction: straw.userData.direction,
+                rotation: { x: straw.rotation.x, y: straw.rotation.y, z: straw.rotation.z }
+            }));
+            
+            undoHistory.push(JSON.parse(JSON.stringify(currentState)));
+        }
+        
+        function undo() {
+            if (undoHistory.length === 0) {
+                showMessage('ℹ️', '没有可撤销的操作');
+                return;
+            }
+            
+            const previousState = undoHistory.pop();
+            
+            straws.forEach(straw => scene.remove(straw));
+            straws = [];
+            
+            previousState.forEach(data => {
+                const straw = createStraw(
+                    new THREE.Vector3(data.position.x, data.position.y, data.position.z),
+                    data.direction || 'horizontal',
+                    data.rotation.y
+                );
+                straw.rotation.x = data.rotation.x;
+                straw.rotation.y = data.rotation.y;
+                straw.rotation.z = data.rotation.z;
+                scene.add(straw);
+                straws.push(straw);
+            });
+            
+            remainingStraws = 20 - straws.length;
+            updateCountDisplay();
+            
+            showMessage('↩️', '已撤销上一步操作');
+        }
+        
+        function clearUndoHistory() {
+            undoHistory = [];
+        }
+        
+        window.addEventListener('load', () => {
+            initScene();
+            setupToolbar();
+            showMessage('🎉', '欢迎使用吸管搭建实验室！\n点击"添加吸管"开始设计');
+        });
+    </script>
+</body>
+</html>

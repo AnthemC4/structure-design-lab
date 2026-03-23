@@ -1621,9 +1621,10 @@
                 
                 // 保存设计数据（包含方向信息和长度）
                 const designData = straws.map(straw => {
-                    const savedBodyLength = (straw.userData.bodyLength !== undefined && straw.userData.bodyLength > 0) 
-                        ? parseFloat(straw.userData.bodyLength.toFixed(6))
-                        : (straw.userData.direction === 'diagonal' ? STRAW_DIAGONAL_BODY_LENGTH : STRAW_LENGTH);
+                    // 使用全局常量，避免浮点数精度问题
+                    const savedBodyLength = (straw.userData.direction === 'diagonal') 
+                        ? STRAW_DIAGONAL_BODY_LENGTH 
+                        : STRAW_LENGTH;
                     
                     return {
                         position: { x: parseFloat(straw.position.x.toFixed(6)), y: parseFloat(straw.position.y.toFixed(6)), z: parseFloat(straw.position.z.toFixed(6)) },
@@ -1714,13 +1715,6 @@
                     // Fallback：根据方向计算
                     savedBodyLength = (data.direction === 'diagonal') ? STRAW_DIAGONAL_BODY_LENGTH : STRAW_LENGTH;
                 }
-                
-                console.log('加载吸管:', {
-                    direction: data.direction,
-                    savedBodyLength: savedBodyLength,
-                    STRAW_LENGTH: STRAW_LENGTH,
-                    STRAW_DIAGONAL_BODY_LENGTH: STRAW_DIAGONAL_BODY_LENGTH
-                });
                 
                 const straw = createStraw(
                     new THREE.Vector3(data.position.x, data.position.y, data.position.z),

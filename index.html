@@ -687,6 +687,7 @@
         let selectedStraw = null; // 当前选中的吸管
         let currentDesignIndex = -1;
         let designs = [null, null, null, null, null]; // 最多 5 个方案
+        let hasUnsavedChanges = false; // 是否有未保存的修改
         
         const STRAW_TOTAL_LENGTH = 2; // 水平/垂直吸管总长度（包含两端球体）
         const STRAW_DIAGONAL_LENGTH = 2 * Math.sqrt(2); // 斜向吸管总长度（45 度对角线）
@@ -1176,6 +1177,7 @@
                     const straw = createStraw(newPosition, currentStrawDirection);
                     scene.add(straw);
                     straws.push(straw);
+                    hasUnsavedChanges = true;
                     remainingStraws--;
                     updateCountDisplay();
                     
@@ -1227,6 +1229,7 @@
                         const straw = createStraw(intersection, currentStrawDirection);
                         scene.add(straw);
                         straws.push(straw);
+                    hasUnsavedChanges = true;
                         remainingStraws--;
                         updateCountDisplay();
                         
@@ -1445,6 +1448,7 @@
             scene.remove(straw);
             straws = straws.filter(s => s !== straw);
             remainingStraws++;
+            hasUnsavedChanges = true;
             updateCountDisplay();
         }
         
@@ -1612,13 +1616,15 @@
                     }
                 }
                 
-                // 保存设计数据
+                // 保存设计数据（包含方向信息）
                 const designData = straws.map(straw => ({
                     position: { x: straw.position.x, y: straw.position.y, z: straw.position.z },
-                    rotation: { x: straw.rotation.x, y: straw.rotation.y, z: straw.rotation.z }
+                    rotation: { x: straw.rotation.x, y: straw.rotation.y, z: straw.rotation.z },
+                    direction: straw.userData.direction || 'horizontal'
                 }));
                 
                 designs[saveIndex] = designData;
+                hasUnsavedChanges = false;
                 currentDesignIndex = saveIndex; // 更新当前方案
                 
                 // 更新 UI
@@ -1660,18 +1666,19 @@
             // 目标方案为空：直接切换，不清空当前内容
             if (!designs[index]) {
                 // 如果有未保存的内容，提示用户
-                if (straws.length > 0) {
+                if (hasUnsavedChanges && straws.length > 0) {
                     showMessage('ℹ️', `已切换到方案 ${index + 1}（空）\n\n当前设计未保存，请记得先保存再切换其他方案`);
                 } else {
                     showMessage('✅', `已切换到方案 ${index + 1}（空）`);
                 }
                 currentDesignIndex = index;
+                hasUnsavedChanges = false;
                 updateDesignsUI();
                 return;
             }
             
-            // 目标方案有内容：确认是否切换（切换会清空当前未保存的内容）
-            if (straws.length > 0) {
+            // 目标方案有内容：确认是否切换（只有有未保存修改时才提示）
+            if (hasUnsavedChanges && straws.length > 0) {
                 if (!confirm('切换方案将清空当前未保存的设计，确定继续吗？\n\n当前设计需要先保存，否则会丢失。')) {
                     return;
                 }
@@ -1688,8 +1695,10 @@
                     data.direction || 'horizontal',
                     data.rotation.y
                 );
-                straw.rotation.x = data.rotation.x;
-                straw.rotation.z = data.rotation.z;
+                // 恢复完整的旋转信息
+                straw.rotation.x = data.rotation.x || 0;
+                straw.rotation.y = data.rotation.y || 0;
+                straw.rotation.z = data.rotation.z || 0;
                 scene.add(straw);
                 straws.push(straw);
             });
@@ -1697,6 +1706,7 @@
             remainingStraws = 20 - straws.length;
             updateCountDisplay();
             currentDesignIndex = index;
+            hasUnsavedChanges = false; // 加载后重置未保存标记
             updateDesignsUI();
             
             showMessage('✅', `已加载方案 ${index + 1}`);

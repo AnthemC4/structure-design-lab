@@ -1620,12 +1620,18 @@
                 }
                 
                 // 保存设计数据（包含方向信息和长度）
-                const designData = straws.map(straw => ({
-                    position: { x: parseFloat(straw.position.x.toFixed(6)), y: parseFloat(straw.position.y.toFixed(6)), z: parseFloat(straw.position.z.toFixed(6)) },
-                    rotation: { x: parseFloat(straw.rotation.x.toFixed(6)), y: parseFloat(straw.rotation.y.toFixed(6)), z: parseFloat(straw.rotation.z.toFixed(6)) },
-                    direction: straw.userData.direction || 'horizontal',
-                    bodyLength: (straw.userData.bodyLength !== undefined) ? parseFloat(straw.userData.bodyLength.toFixed(6)) : (straw.userData.direction === 'diagonal' ? STRAW_DIAGONAL_BODY_LENGTH : STRAW_LENGTH)
-                }));
+                const designData = straws.map(straw => {
+                    const savedBodyLength = (straw.userData.bodyLength !== undefined && straw.userData.bodyLength > 0) 
+                        ? parseFloat(straw.userData.bodyLength.toFixed(6))
+                        : (straw.userData.direction === 'diagonal' ? STRAW_DIAGONAL_BODY_LENGTH : STRAW_LENGTH);
+                    
+                    return {
+                        position: { x: parseFloat(straw.position.x.toFixed(6)), y: parseFloat(straw.position.y.toFixed(6)), z: parseFloat(straw.position.z.toFixed(6)) },
+                        rotation: { x: parseFloat(straw.rotation.x.toFixed(6)), y: parseFloat(straw.rotation.y.toFixed(6)), z: parseFloat(straw.rotation.z.toFixed(6)) },
+                        direction: straw.userData.direction || 'horizontal',
+                        bodyLength: savedBodyLength
+                    };
+                });
                 
                 designs[saveIndex] = designData;
                 hasUnsavedChanges = false;
@@ -1700,11 +1706,27 @@
             
             // 加载已保存的设计
             designs[index].forEach(data => {
+                // 使用保存的 bodyLength，如果没有则根据方向计算
+                let savedBodyLength = null;
+                if (data.bodyLength !== undefined && data.bodyLength !== null && data.bodyLength > 0) {
+                    savedBodyLength = data.bodyLength;
+                } else {
+                    // Fallback：根据方向计算
+                    savedBodyLength = (data.direction === 'diagonal') ? STRAW_DIAGONAL_BODY_LENGTH : STRAW_LENGTH;
+                }
+                
+                console.log('加载吸管:', {
+                    direction: data.direction,
+                    savedBodyLength: savedBodyLength,
+                    STRAW_LENGTH: STRAW_LENGTH,
+                    STRAW_DIAGONAL_BODY_LENGTH: STRAW_DIAGONAL_BODY_LENGTH
+                });
+                
                 const straw = createStraw(
                     new THREE.Vector3(data.position.x, data.position.y, data.position.z),
                     data.direction || 'horizontal',
                     data.rotation.y,
-                    data.bodyLength  // 使用保存的长度，避免重新计算
+                    savedBodyLength  // 使用保存的长度，避免重新计算
                 );
                 // 恢复完整的旋转信息
                 straw.rotation.x = data.rotation.x || 0;

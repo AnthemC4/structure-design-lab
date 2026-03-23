@@ -860,34 +860,22 @@
                 group.add(joint1);
                 group.add(joint2);
             } else if (direction === 'diagonal') {
-                // 斜向 45 度：圆柱体和球体都沿 45 度方向
-                const cos45 = Math.sqrt(2) / 2;  // ≈ 0.707
-                const sin45 = Math.sqrt(2) / 2;  // ≈ 0.707
+                // 斜向 45 度：球体作为圆柱体的子对象，跟随圆柱体旋转
+                // 这样球体和圆柱体永远是一个整体
                 
-                console.log('===== 斜向吸管创建 =====');
-                console.log('jointOffset:', jointOffset);
-                console.log('cos45:', cos45, 'sin45:', sin45);
-                console.log('joint1 位置:', {
-                    x: -jointOffset * cos45,
-                    y: -jointOffset * sin45
-                });
-                console.log('joint2 位置:', {
-                    x: jointOffset * cos45,
-                    y: jointOffset * sin45
-                });
+                // 先把球体放在圆柱体 Y 轴两端（圆柱体默认沿 Y 轴）
+                joint1.position.y = -jointOffset;
+                joint2.position.y = jointOffset;
                 
-                // 圆柱体旋转 45 度
+                // 把球体添加到圆柱体（不是 group）
+                cylinder.add(joint1);
+                cylinder.add(joint2);
+                
+                // 旋转圆柱体 45 度，球体跟着一起转
                 cylinder.rotation.z = Math.PI / 4;
                 
-                // 球体位置：沿 45 度线
-                joint1.position.x = -jointOffset * cos45;
-                joint1.position.y = -jointOffset * sin45;
-                joint2.position.x = jointOffset * cos45;
-                joint2.position.y = jointOffset * sin45;
-                
+                // 只添加圆柱体到 group（球体已经在圆柱体里了）
                 group.add(cylinder);
-                group.add(joint1);
-                group.add(joint2);
             } else {
                 group.add(cylinder);
                 group.add(joint1);
